@@ -120,5 +120,11 @@ def save_vote():
     )
 
 
+@app.route("/crawl")
+def hello_world():
+    user = request.args.get('user')
+    return f"Hello {user}!"
+
+
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
