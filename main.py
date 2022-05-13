@@ -27,14 +27,15 @@ def init_db_connection():
 
 
 def init_unix_connection_engine(db_config):
+    print(os.environ.get('CLOUD_SQL_CONNECTION_NAME'))
     pool = sqlalchemy.create_engine(
         sqlalchemy.engine.url.URL(
-            drivername="mysql+pymysql",
+            drivername="postgres+pg8000",
             username=os.environ.get('DB_USER'),
             password=os.environ.get('DB_PASS'),
             database=os.environ.get('DB_NAME'),
             query={
-                "unix_sock": "/cloudsql/{}".format(
+                "unix_sock": "/cloudsql/{}/.s.PGSQL.5432".format(
                     os.environ.get('CLOUD_SQL_CONNECTION_NAME')),
             }
         ),
