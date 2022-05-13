@@ -54,6 +54,8 @@ steps:
         "--platform",
         "managed",
         "--allow-unauthenticated",
+        "--add-cloudsql-instances",
+        "mle-by-xjl:us-central1:db-for-mle",
       ]
   # [END cloudbuild_python_deploy_yaml]
 
