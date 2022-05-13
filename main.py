@@ -15,6 +15,7 @@ app = Flask(__name__)
 
 logger = logging.getLogger()
 
+
 def init_db_connection():
     db_config = {
         'pool_size': 5,
@@ -24,22 +25,27 @@ def init_db_connection():
     }
     return init_unix_connection_engine(db_config)
 
+
 def init_unix_connection_engine(db_config):
     pool = sqlalchemy.create_engine(
         sqlalchemy.engine.url.URL(
-            drivername="postgres+pg8000",
-            host=os.environ.get('DB_HOST'),
-            port=os.environ.get('DB_PORT'),
+            drivername="mysql+pymysql",
             username=os.environ.get('DB_USER'),
             password=os.environ.get('DB_PASS'),
             database=os.environ.get('DB_NAME'),
+            query={
+                "unix_sock": "/cloudsql/{}".format(
+                    os.environ.get('CLOUD_SQL_CONNECTION_NAME')),
+            }
         ),
         **db_config
     )
     pool.dialect.description_encoding = None
     return pool
 
+
 db = init_db_connection()
+
 
 @app.route('/', methods=['GET'])
 def index():
