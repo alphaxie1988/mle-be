@@ -18,37 +18,45 @@ steps:
   - name: python
     entrypoint: pip
     args: ["install", "-r", "requirements.txt", "--user"]
-# [END cloudbuild_python_dependencies_yaml]
+  # [END cloudbuild_python_dependencies_yaml]
 
   # [START cloudbuild_python_tests_yaml]
   # Run unit tests
   - name: python
     entrypoint: python
-    args: ["-m", "pytest", "--junitxml=${SHORT_SHA}_test_log.xml"] 
+    args: ["-m", "pytest", "--junitxml=${SHORT_SHA}_test_log.xml"]
   # [END cloudbuild_python_tests_yaml]
 
   # [START cloudbuild_python_image_yaml]
   # Docker Build
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 
-           'gcr.io/${PROJECT_ID}/myimage:${SHORT_SHA}', '.']
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["build", "-t", "gcr.io/${PROJECT_ID}/myimage:${SHORT_SHA}", "."]
   # [END cloudbuild_python_image_yaml]
 
   # [START cloudbuild_python_push_yaml]
   # Docker push to Google Artifact Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push',  'gcr.io/${PROJECT_ID}/myimage:${SHORT_SHA}']
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/${PROJECT_ID}/myimage:${SHORT_SHA}"]
   # [END cloudbuild_python_push_yaml]
-  
+
   # [START cloudbuild_python_deploy_yaml]
   # Deploy to Cloud Run
   - name: google/cloud-sdk
-    args: ['gcloud', 'run', 'deploy', 'helloworld-${SHORT_SHA}', 
-           '--image=gcr.io/${PROJECT_ID}/myimage:${SHORT_SHA}', 
-           '--region', 'us-central1', '--platform', 'managed', 
-           '--allow-unauthenticated']
+    args:
+      [
+        "gcloud",
+        "run",
+        "deploy",
+        "mle-be",
+        "--image=gcr.io/${PROJECT_ID}/myimage:${SHORT_SHA}",
+        "--region",
+        "us-central1",
+        "--platform",
+        "managed",
+        "--allow-unauthenticated",
+      ]
   # [END cloudbuild_python_deploy_yaml]
-  
+
 # [START cloudbuild_python_logs_yaml]
 # Save test logs to Google Cloud Storage
 artifacts:
@@ -57,7 +65,7 @@ artifacts:
     paths:
       - ${SHORT_SHA}_test_log.xml
 # [END cloudbuild_python_logs_yaml]
-# Store images in Google Artifact Registry 
+# Store images in Google Artifact Registry
 images:
   - gcr.io/${PROJECT_ID}/myimage:${SHORT_SHA}
 # [END cloudbuild_python_yaml]
