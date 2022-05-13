@@ -3,10 +3,8 @@ import logging
 import os
 import random
 import time
-import threading
-import asyncio
 
-from flask import Flask, render_template, request, Response, jsonify
+from flask import Flask, render_template, request, Response
 import sqlalchemy
 
 # Hydrate the environment from the .env file
@@ -126,20 +124,6 @@ def save_vote():
 def crawl():
     user = request.args.get('user')
     return f"Hello {user}!"
-
-
-@app.route("/test", methods=["GET"])
-def index():
-    print(f"Inside flask function: {threading.current_thread().name}")
-    asyncio.set_event_loop(asyncio.new_event_loop())
-    loop = asyncio.get_event_loop()
-    result = loop.run_until_complete(hello())
-    return jsonify({"result": result})
-
-
-async def hello():
-    await asyncio.sleep(5)
-    return 1
 
 
 if __name__ == '__main__':
