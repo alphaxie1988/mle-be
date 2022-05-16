@@ -122,6 +122,7 @@ def save_vote():
 
 @app.route("/crawl")
 def crawl():
+    time.sleep(15)
     user = request.args.get('user')
     return f"Hello {user}!"
 
