@@ -3,7 +3,7 @@ import logging
 import os
 import random
 import time
-
+import requests
 from flask import Flask, render_template, request, Response
 import sqlalchemy
 
@@ -27,20 +27,34 @@ def init_db_connection():
 
 
 def init_unix_connection_engine(db_config):
-    print(os.environ.get('CLOUD_SQL_CONNECTION_NAME'))
-    pool = sqlalchemy.create_engine(
-        sqlalchemy.engine.url.URL(
-            drivername="postgres+pg8000",
-            username=os.environ.get('DB_USER'),
-            password=os.environ.get('DB_PASS'),
-            database=os.environ.get('DB_NAME'),
-            query={
-                "unix_sock": "/cloudsql/{}/.s.PGSQL.5432".format(
-                    os.environ.get('CLOUD_SQL_CONNECTION_NAME')),
-            }
-        ),
-        **db_config
-    )
+    if(os.environ.get('DB_PASS') == None):
+        # Dev
+        pool = sqlalchemy.create_engine(
+            sqlalchemy.engine.url.URL(
+                host="127.0.0.1",
+                port="5432",
+                drivername="postgres+pg8000",
+                username=os.environ.get('DB_USER'),
+                password="Password123ajjw",
+                database=os.environ.get('DB_NAME'),
+            ),
+            **db_config
+        )
+    else:
+        # Production
+        pool = sqlalchemy.create_engine(
+            sqlalchemy.engine.url.URL(
+                drivername="postgres+pg8000",
+                username=os.environ.get('DB_USER'),
+                password=os.environ.get('DB_PASS'),
+                database=os.environ.get('DB_NAME'),
+                query={
+                    "unix_sock": "/cloudsql/{}/.s.PGSQL.5432".format(
+                        os.environ.get('CLOUD_SQL_CONNECTION_NAME')),
+                }
+            ),
+            **db_config
+        )
     pool.dialect.description_encoding = None
     return pool
 
@@ -122,10 +136,61 @@ def save_vote():
 
 @app.route("/crawl")
 def crawl():
+    # Check if system is crawling
+    requests.get(
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Started%20at%20"+str(datetime.datetime.now()))
+    with db.connect() as conn:
+        isCrawling = conn.execute(
+            "SELECT value FROM mle where key='crawling'").fetchone()
+        isCrawling = bool(int(isCrawling[0]))
+    if (isCrawling):
+        return f"Already Crawling, please wait!"
+
+    # Start to Crawl Code Here
+    print("Start to Crawl")
+    with db.connect() as conn:
+        conn.execute("UPDATE mle SET value = '1' WHERE key='crawling'")
+    ##################### JIE YUAN START HERE ##############
+
+    date = request.args.get('date')
+    # 1)crawl from careersgfuture order by posted dated if full crawl ie(date is null), crawl everything else crawl until date
+    # sleep 15 to simulate we use 15 second to crawl
     time.sleep(15)
-    user = request.args.get('user')
-    return f"Hello {user}!"
+    # 2)insert into postgres mycareerfuture table
+    # 3)trigger cleaning
+    if(date):
+        return f"Hello {date}!"
+
+    ###################### JIE YUAN END HERE ###############
+    clean()
+    with db.connect() as conn:
+        conn.execute("UPDATE mle SET value = '0' WHERE key='crawling'")
+    print("Crawl Finish")
+    requests.get(
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Ended%20at%20"+str(datetime.datetime.now()))
+    # End of Crawl
+    return f"Thank you for waiting!"
 
 
+def clean():
+    requests.get(
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Cleaning%20Started%20at%20"+str(datetime.datetime.now()))
+    ########### Start Cleaning ############
+    ######## Anna start here ###########
+    # 1) read all data from careers table where column included is null
+    # 2) Detect outlier update column remark=""
+    # 3) Spell check or any other potential problem
+    # 4) update column included = included
+    time.sleep(15)
+    ######## Anna end here #########
+    ########## End Cleaning ##############
+    requests.get(
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Cleaning%20Ended%20at%20"+str(datetime.datetime.now()))
+
+
+def train():
+
+    # select * from careers where error is not null and fixed = "included"
+    # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
