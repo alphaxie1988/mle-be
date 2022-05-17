@@ -189,6 +189,8 @@ def clean():
 
 
 def train():
+    requests.get(
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Started%20at%20"+str(datetime.datetime.now()))
 
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
