@@ -1,7 +1,6 @@
 import datetime
 import logging
 import os
-import random
 import time
 import requests
 from flask import Flask, render_template, request, Response
@@ -137,14 +136,14 @@ def save_vote():
 @app.route("/crawl")
 def crawl():
     # Check if system is crawling
-    requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Started%20at%20"+str(datetime.datetime.now()))
     with db.connect() as conn:
         isCrawling = conn.execute(
             "SELECT value FROM mle where key='crawling'").fetchone()
         isCrawling = bool(int(isCrawling[0]))
     if (isCrawling):
         return f"Already Crawling, please wait!"
+    requests.get(
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Started%20at%20"+str(datetime.datetime.now()))
 
     # Start to Crawl Code Here
     print("Start to Crawl")
@@ -152,16 +151,17 @@ def crawl():
         conn.execute("UPDATE mle SET value = '1' WHERE key='crawling'")
     ##################### JIE YUAN START HERE ##############
 
-    date = request.args.get('date')
+    fullcrawl = request.args.get('fullcrawl')
     # 1)crawl from careersgfuture order by posted dated if full crawl ie(date is null), crawl everything else crawl until date
     # sleep 15 to simulate we use 15 second to crawl
     time.sleep(15)
     # 2)insert into postgres mycareerfuture table
-    # 3)trigger cleaning
-    if(date):
-        return f"Hello {date}!"
+
+    if(fullcrawl):
+        return f"Start Full Crawl {fullcrawl}!"
 
     ###################### JIE YUAN END HERE ###############
+    # 3)trigger cleaning
     clean()
     with db.connect() as conn:
         conn.execute("UPDATE mle SET value = '0' WHERE key='crawling'")
