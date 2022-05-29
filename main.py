@@ -181,7 +181,14 @@ def clean():
     # 2) Detect outlier update column remark=""
     # 3) Spell check or any other potential problem
     # 4) update column included = included
+
+    # 0 - crawl not check
+    # 1 - checked and flagged
+    # 2 - checked and notflagged [use for training]
+    # 3 - checked and flagged and verified [use for training]
+    # 4 - checked and flagged and verified not use for training [not use for training]
     time.sleep(15)
+    train()
     ######## Anna end here #########
     ########## End Cleaning ##############
     requests.get(
@@ -194,5 +201,13 @@ def train():
 
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
+
+
+def predict(job):
+    #model = pickle.load("gs://sadsaas/asd.model")
+    # return model.predict(job)
+    return 0
+
+
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
