@@ -1,3 +1,4 @@
+import random
 import datetime
 import logging
 import os
@@ -5,13 +6,17 @@ import time
 import requests
 from flask import Flask, render_template, request, Response
 import sqlalchemy
+import json
+# get this object
+from flask import Response
+from flask_cors import CORS
 
 # Hydrate the environment from the .env file
 from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-
+CORS(app)
 logger = logging.getLogger()
 
 
@@ -203,10 +208,60 @@ def train():
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
 
 
-def predict(job):
-    #model = pickle.load("gs://sadsaas/asd.model")
+@app.route("/predict")
+def predict():
+    # model = pickle.load("gs://sadsaas/asd.model")
     # return model.predict(job)
-    return 0
+    return Response(json.dumps({"pMinSal": random.randint(1000, 20000), "pMaxSal": random.randint(1000, 20000)}),  mimetype='application/json')
+
+
+@app.route("/stats")
+def stats():
+
+    rsquarevalue = [{"name": str(
+        x+1)+" Jun 2022",  "R Square Value":  random.randint(80, 100)} for x in range(8)]
+    RSME = [{"name": str(
+        x+1)+" Jun 2022",  "RSME":  random.randint(800, 1000)/1000} for x in range(8)]
+    newjob = [{"name": str(
+        x+1)+" Jun 2022",  "New Job":  random.randint(140, 200)} for x in range(8)]
+    return Response(json.dumps({"rsquarevalue": rsquarevalue, "RSME": RSME, "newjob": newjob}),  mimetype='application/json')
+
+
+@app.route("/data")
+def data():
+
+    return Response(json.dumps([
+        {
+            "id": 10,
+            "jobTitle": "Data Analyst",
+            "jobDescription": "Rubbish....",
+            "jobSkills": "SQL,Python",
+            "numberofvacancies": 5,
+            "jobCategory": "Legal",
+            "jobPositionLevels": "Manager",
+            "minimumSal": 0,
+            "maximumSal": 100000,
+            "remark": "Range too wide",
+        },
+        {
+            "id": 22,
+            "jobTitle": "Data Analyst",
+            "jobDescription": "Rubbish....",
+            "jobSkills": "SQL,Python",
+            "numberofvacancies": 5,
+            "jobCategory": "Legal",
+            "jobPositionLevels": "Manager",
+            "minimumSal": 0,
+            "maximumSal": 100000,
+            "remark": "Range too wide",
+        },
+    ]),  mimetype='application/json')
+
+
+@app.route('/data', methods=['PUT'])
+def updateData():
+    print(request.get_json()['payload'])
+    return Response(json.dumps({"success": True}), 200,  mimetype='application/json')
 
 
 if __name__ == '__main__':
