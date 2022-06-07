@@ -65,9 +65,9 @@ def init_unix_connection_engine(db_config):
                 host="127.0.0.1",
                 port="5432",
                 drivername="postgres+pg8000",
-                username=os.environ.get('DB_USER'),
+                username="postgres",
                 password="Password123ajjw",
-                database=os.environ.get('DB_NAME'),
+                database="mycareersfuture",
             ),
             **db_config
         )
