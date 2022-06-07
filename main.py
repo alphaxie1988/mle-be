@@ -7,6 +7,12 @@ import requests
 from flask import Flask, render_template, request, Response
 import sqlalchemy
 import json
+from bs4 import BeautifulSoup
+from datetime import datetime
+import psycopg2
+from psycopg2 import Error
+import pandas as pd
+import requests
 # get this object
 from flask import Response
 from flask_cors import CORS
@@ -18,6 +24,18 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 logger = logging.getLogger()
+
+
+def insert_varibles_into_table(cursor, connection, uuid, title, description, minimumYearsExperience, skills, numberOfVacancies, categories, employmentTypes, positionLevels, totalNumberOfView, totalNumberJobApplication, originalPostingDate, expiryDate, links, postedCompany, minsalary, maxsalary, avgsalary):
+
+    PSql_insert_query = """INSERT INTO careers(uuid,title,description,minimumYearsExperience,skills,numberOfVacancies,categories,employmentTypes,positionLevels,totalNumberOfView,totalNumberJobApplication,originalPostingDate,expiryDate,links,postedCompany,minsalary,maxsalary,avgsalary,crawldate,status)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now(),0)"""
+
+    record = (uuid, title, description, minimumYearsExperience, skills, numberOfVacancies, categories, employmentTypes, positionLevels,
+              totalNumberOfView, totalNumberJobApplication, originalPostingDate, expiryDate, links, postedCompany, minsalary, maxsalary, avgsalary)
+    cursor.execute(PSql_insert_query, record)
+    connection.commit()
+    print(".", sep="")
 
 
 def init_db_connection():
@@ -103,7 +121,7 @@ def index():
 def save_vote():
     # Get the team and time the vote was cast.
     team = request.form['team']
-    time_cast = datetime.datetime.utcnow()
+    time_cast = datetime.utcnow()
     # Verify that the team is one of the allowed options
     if team != "TABS" and team != "SPACES":
         logger.warning(team)
@@ -148,18 +166,97 @@ def crawl():
     if (isCrawling):
         return f"Already Crawling, please wait!"
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Started%20at%20"+str(datetime.datetime.now()))
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Started%20at%20"+str(datetime.now()))
 
     # Start to Crawl Code Here
     print("Start to Crawl")
     with db.connect() as conn:
         conn.execute("UPDATE mle SET value = '1' WHERE key='crawling'")
     ##################### JIE YUAN START HERE ##############
-
+    with db.connect() as conn:
+        numberOfJobBefore = int(conn.execute(
+            "SELECT count(*) FROM careers").fetchone()[0])
     fullcrawl = request.args.get('fullcrawl')
     # 1)crawl from careersgfuture order by posted dated if full crawl ie(date is null), crawl everything else crawl until date
-    # sleep 15 to simulate we use 15 second to crawl
-    time.sleep(15)
+    try:
+        connection = psycopg2.connect(
+            host="localhost",
+            database="mycareersfuture",
+            user="postgres",
+            password="Password123ajjw")
+        connection.autocommit = True
+        cursor = connection.cursor()
+        ####### end of connection ####
+        max_date = pd.read_sql(
+            "select max(careers.originalpostingdate) from careers", connection).iloc[0, 0]
+
+        if max_date is not None:  # update existing table
+            max_date_uuid = pd.read_sql(
+                "select uuid from careers where originalpostingdate='" + str(max_date) + "'", connection)
+            max_date_uuid_list = max_date_uuid['uuid'].tolist()
+
+            for page in range(1000):
+                r = requests.get(
+                    "https://api.mycareersfuture.gov.sg/v2/jobs?limit=100&page=" + str(page) + "&sortBy=new_posting_date")
+                if (r.status_code == 200):
+                    result = json.loads(r.text)
+                    if len(result["results"]) != 0:
+                        # check 1st date of each page extracted. when latest updated date < max date, the loop will stop
+                        latest_post_date_1st_row = datetime.strptime(
+                            result["results"][0]["metadata"]["newPostingDate"], "%Y-%m-%d").date()
+
+                        if latest_post_date_1st_row < max_date:
+                            break
+
+                        for res in result["results"]:
+                            org_post_date = datetime.strptime(
+                                res["metadata"]["originalPostingDate"], "%Y-%m-%d").date()
+
+                            if org_post_date > max_date:
+                                try:
+                                    insert_varibles_into_table(cursor, connection, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " ")).get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
+                                        [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
+                                except Exception:
+                                    pass
+                            elif org_post_date == max_date:
+                                if res["uuid"] not in max_date_uuid_list:
+                                    try:
+                                        insert_varibles_into_table(cursor, connection, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " ")).get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
+                                            [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
+                                    except Exception:
+                                        pass
+                                else:
+                                    continue
+                            else:
+                                break
+                    else:
+                        break
+
+        else:  # for full crawl
+            for page in range(2000):
+                r = requests.get(
+                    "https://api.mycareersfuture.gov.sg/v2/jobs?limit=100&page=" + str(page) + "&sortBy=new_posting_date")
+                if (r.status_code == 200):
+                    result = json.loads(r.text)
+                    if len(result["results"]) != 0:
+                        for res in result["results"]:
+                            try:
+                                insert_varibles_into_table(cursor, connection, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " ")).get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
+                                    [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
+                            except (Exception, Error) as error:
+                                print("error:", error)
+                                pass
+                    else:
+                        break
+
+    except (Exception, Error) as error:
+        print("Error while connecting to PostgreSQL", error)
+    finally:
+        if (connection):
+            cursor.close()
+            connection.close()
+            print("PostgreSQL connection is closed")
+
     # 2)insert into postgres mycareerfuture table
 
     if(fullcrawl):
@@ -171,15 +268,18 @@ def crawl():
     with db.connect() as conn:
         conn.execute("UPDATE mle SET value = '0' WHERE key='crawling'")
     print("Crawl Finish")
+    with db.connect() as conn:
+        numberOfJobAfter = int(conn.execute(
+            "SELECT count(*) FROM careers").fetchone()[0])
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Ended%20at%20"+str(datetime.datetime.now()))
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Ended%20at%20"+str(datetime.now())+"|Number%20Of%20New%20Jobs:"+str(numberOfJobAfter-numberOfJobBefore))
     # End of Crawl
     return f"Thank you for waiting!"
 
 
 def clean():
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Cleaning%20Started%20at%20"+str(datetime.datetime.now()))
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Cleaning%20Started%20at%20"+str(datetime.now()))
     ########### Start Cleaning ############
     ######## Anna start here ###########
     # 1) read all data from careers table where column included is null
@@ -187,25 +287,44 @@ def clean():
     # 3) Spell check or any other potential problem
     # 4) update column included = included
 
+    # Salary too wide
+    with db.connect() as conn:
+        numberOfFlagedBefore = int(conn.execute(
+            "SELECT count(*) FROM careers where status='1'").fetchone()[0])
+    with db.connect() as conn:
+        conn.execute(
+            "update careers set status = 1, remarks=Concat(remarks,'Salary Range too Wide|') where maxsalary - minsalary > 15000 and status = 0")
+    with db.connect() as conn:
+        conn.execute(
+            "update careers set status = 1, remarks=Concat(remarks,'Min salary is too low|') where minsalary <= 100 and status = 0")
+    # update the rest
+    with db.connect() as conn:
+        conn.execute("update careers set status = 2 where status = 0")
+    with db.connect() as conn:
+        numberOfFlagedAfter = int(conn.execute(
+            "SELECT count(*) FROM careers where status='1'").fetchone()[0])
+
     # 0 - crawl not check
     # 1 - checked and flagged
     # 2 - checked and notflagged [use for training]
     # 3 - checked and flagged and verified [use for training]
     # 4 - checked and flagged and verified not use for training [not use for training]
-    time.sleep(15)
-    train()
+
     ######## Anna end here #########
     ########## End Cleaning ##############
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Cleaning%20Ended%20at%20"+str(datetime.datetime.now()))
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Cleaning%20Ended%20at%20"+str(datetime.now())+"|Number%20Of%20Flagged:"+str(numberOfFlagedAfter-numberOfFlagedBefore))
+    train()
 
 
 def train():
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Started%20at%20"+str(datetime.datetime.now()))
-
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Started%20at%20"+str(datetime.now()))
+    time.sleep(15)
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
+    requests.get(
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Ended%20at%20"+str(datetime.now()))
 
 
 @app.route("/predict")
@@ -227,40 +346,27 @@ def stats():
     return Response(json.dumps({"rsquarevalue": rsquarevalue, "RSME": RSME, "newjob": newjob}),  mimetype='application/json')
 
 
-@app.route("/data")
+@app.route("/outlier")
 def data():
+    df = pd.read_sql(
+        "select uuid, title, left(description,50) as description, skills, numberofvacancies, categories, positionlevels, minsalary, maxsalary , remarks from careers where status = 1", db.connect())
 
-    return Response(json.dumps([
-        {
-            "id": 10,
-            "jobTitle": "Data Analyst",
-            "jobDescription": "Rubbish....",
-            "jobSkills": "SQL,Python",
-            "numberofvacancies": 5,
-            "jobCategory": "Legal",
-            "jobPositionLevels": "Manager",
-            "minimumSal": 0,
-            "maximumSal": 100000,
-            "remark": "Range too wide",
-        },
-        {
-            "id": 22,
-            "jobTitle": "Data Analyst",
-            "jobDescription": "Rubbish....",
-            "jobSkills": "SQL,Python",
-            "numberofvacancies": 5,
-            "jobCategory": "Legal",
-            "jobPositionLevels": "Manager",
-            "minimumSal": 0,
-            "maximumSal": 100000,
-            "remark": "Range too wide",
-        },
-    ]),  mimetype='application/json')
+    return Response(json.dumps([{v: x[k] for (k, v) in enumerate(df)}for x in df.values]
+                               ),  mimetype='application/json')
 
 
-@app.route('/data', methods=['PUT'])
+@app.route('/outlier', methods=['PUT'])
 def updateData():
-    print(request.get_json()['payload'])
+    print(request.get_json()['action'])
+    print(str(request.get_json()['payload'])[1:-1])
+    if request.get_json()['action'] == "Add":
+        with db.connect() as conn:
+            conn.execute(
+                "update careers set status = 3, remarks=Concat(remarks,'Admin marked as OK|') where uuid in ("+str(request.get_json()['payload'])[1:-1]+")")
+    elif request.get_json()['action'] == "Hide":
+        with db.connect() as conn:
+            conn.execute(
+                "update careers set status = 4, remarks=Concat(remarks,'Admin marked as not OK|') where uuid in ("+str(request.get_json()['payload'])[1:-1]+")")
     return Response(json.dumps({"success": True}), 200,  mimetype='application/json')
 
 
