@@ -1,3 +1,8 @@
+#   ___ __  __ ___  ___  ___ _____
+#  |_ _|  \/  | _ \/ _ \| _ \_   _|
+#   | || |\/| |  _/ (_) |   / | |
+#  |___|_|  |_|_|  \___/|_|_\ |_|
+
 import random
 import datetime
 import logging
@@ -9,32 +14,36 @@ import sqlalchemy
 import json
 from bs4 import BeautifulSoup
 from datetime import datetime
-import psycopg2
-from psycopg2 import Error
 import pandas as pd
 import requests
-# get this object
 from flask import Response
 from flask_cors import CORS
-
-# Hydrate the environment from the .env file
 from dotenv import load_dotenv
-load_dotenv()
 
+#   ___ _  _ ___ _____ ___   _   _    ___ ___ ___ _  _  ___
+#  |_ _| \| |_ _|_   _|_ _| /_\ | |  |_ _/ __|_ _| \| |/ __|
+#   | || .` || |  | |  | | / _ \| |__ | |\__ \| || .` | (_ |
+#  |___|_|\_|___| |_| |___/_/ \_\____|___|___/___|_|\_|\___|
+load_dotenv()
 app = Flask(__name__)
 CORS(app)
 logger = logging.getLogger()
 
+#  ___ _   _ _  _  ___ _____ ___ ___  _  _
+#  | __| | | | \| |/ __|_   _|_ _/ _ \| \| |
+#  | _|| |_| | .` | (__  | |  | | (_) | .` |
+#  |_|  \___/|_|\_|\___| |_| |___\___/|_|\_|
 
-def insert_varibles_into_table(cursor, connection, uuid, title, description, minimumYearsExperience, skills, numberOfVacancies, categories, employmentTypes, positionLevels, totalNumberOfView, totalNumberJobApplication, originalPostingDate, expiryDate, links, postedCompany, minsalary, maxsalary, avgsalary):
 
-    PSql_insert_query = """INSERT INTO careers(uuid,title,description,minimumYearsExperience,skills,numberOfVacancies,categories,employmentTypes,positionLevels,totalNumberOfView,totalNumberJobApplication,originalPostingDate,expiryDate,links,postedCompany,minsalary,maxsalary,avgsalary,crawldate,status)
-                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now(),0)"""
+def insert_varibles_into_table(conn, uuid, title, description, minimumYearsExperience, skills, numberOfVacancies, categories, employmentTypes, positionLevels, totalNumberOfView, totalNumberJobApplication, originalPostingDate, expiryDate, links, postedCompany, minsalary, maxsalary, avgsalary):
+    # 2)insert into postgres mycareerfuture table
+    PSql_insert_query = """INSERT INTO careers(uuid,title,description,minimumYearsExperience,skills,numberOfVacancies,categories,employmentTypes,positionLevels,totalNumberOfView,totalNumberJobApplication,originalPostingDate,expiryDate,links,postedCompany,minsalary,maxsalary,avgsalary,crawldate,status,remarks)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now(),0,'')"""
 
     record = (uuid, title, description, minimumYearsExperience, skills, numberOfVacancies, categories, employmentTypes, positionLevels,
               totalNumberOfView, totalNumberJobApplication, originalPostingDate, expiryDate, links, postedCompany, minsalary, maxsalary, avgsalary)
-    cursor.execute(PSql_insert_query, record)
-    connection.commit()
+    conn.execute(PSql_insert_query, record)
+    # connection.commit()
     print(".", sep="")
 
 
@@ -82,6 +91,11 @@ def init_unix_connection_engine(db_config):
 
 
 db = init_db_connection()
+
+#   ___ ___ ___ _____ ___ _   _ _        _   ___ ___
+#  | _ \ __/ __|_   _| __| | | | |      /_\ | _ \_ _|
+#  |   / _|\__ \ | | | _|| |_| | |__   / _ \|  _/| |
+#  |_|_\___|___/ |_| |_|  \___/|____| /_/ \_\_| |___|
 
 
 @app.route('/', methods=['GET'])
@@ -176,98 +190,106 @@ def crawl():
     with db.connect() as conn:
         numberOfJobBefore = int(conn.execute(
             "SELECT count(*) FROM careers").fetchone()[0])
-    fullcrawl = request.args.get('fullcrawl')
     # 1)crawl from careersgfuture order by posted dated if full crawl ie(date is null), crawl everything else crawl until date
     try:
-        connection = psycopg2.connect(
-            host="localhost",
-            database="mycareersfuture",
-            user="postgres",
-            password="Password123ajjw")
-        connection.autocommit = True
-        cursor = connection.cursor()
-        ####### end of connection ####
-        max_date = pd.read_sql(
-            "select max(careers.originalpostingdate) from careers", connection).iloc[0, 0]
+        with db.connect() as conn:
+            # connection = psycopg2.connect(
+            #     host="localhost",
+            #     database="mycareersfuture",
+            #     user="postgres",
+            #     password="Password123ajjw")
+            # connection.autocommit = True
+            # cursor = connection.cursor()
+            ####### end of connection ####
+            max_date = pd.read_sql(
+                "select max(careers.originalpostingdate) from careers", conn).iloc[0, 0]
+            print("Max Date:", max_date)
 
-        if max_date is not None:  # update existing table
-            max_date_uuid = pd.read_sql(
-                "select uuid from careers where originalpostingdate='" + str(max_date) + "'", connection)
-            max_date_uuid_list = max_date_uuid['uuid'].tolist()
+            if max_date is not None:
+                #  _  _   _   _    ___    ___ ___    ___      ___
+                # | || | /_\ | |  | __|  / __| _ \  /_\ \    / / |
+                # | __ |/ _ \| |__| _|  | (__|   / / _ \ \/\/ /| |__
+                # |_||_/_/ \_\____|_|    \___|_|_\/_/ \_\_/\_/ |____|
 
-            for page in range(1000):
-                r = requests.get(
-                    "https://api.mycareersfuture.gov.sg/v2/jobs?limit=100&page=" + str(page) + "&sortBy=new_posting_date")
-                if (r.status_code == 200):
-                    result = json.loads(r.text)
-                    if len(result["results"]) != 0:
-                        # check 1st date of each page extracted. when latest updated date < max date, the loop will stop
-                        latest_post_date_1st_row = datetime.strptime(
-                            result["results"][0]["metadata"]["newPostingDate"], "%Y-%m-%d").date()
+                print("Start Crawling from", max_date)
+                max_date_uuid = pd.read_sql(
+                    "select uuid from careers where originalpostingdate='" + str(max_date) + "'", conn)
+                max_date_uuid_list = max_date_uuid['uuid'].tolist()
 
-                        if latest_post_date_1st_row < max_date:
-                            break
+                for page in range(1000):
+                    r = requests.get(
+                        "https://api.mycareersfuture.gov.sg/v2/jobs?limit=100&page=" + str(page) + "&sortBy=new_posting_date")
+                    if (r.status_code == 200):
+                        result = json.loads(r.text)
+                        if len(result["results"]) != 0:
+                            # check 1st date of each page extracted. when latest updated date < max date, the loop will stop
+                            latest_post_date_1st_row = datetime.strptime(
+                                result["results"][0]["metadata"]["newPostingDate"], "%Y-%m-%d").date()
 
-                        for res in result["results"]:
-                            org_post_date = datetime.strptime(
-                                res["metadata"]["originalPostingDate"], "%Y-%m-%d").date()
+                            if latest_post_date_1st_row < max_date:
+                                break
 
-                            if org_post_date > max_date:
-                                try:
-                                    insert_varibles_into_table(cursor, connection, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " ")).get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
-                                        [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
-                                except Exception:
-                                    pass
-                            elif org_post_date == max_date:
-                                if res["uuid"] not in max_date_uuid_list:
+                            for res in result["results"]:
+                                org_post_date = datetime.strptime(
+                                    res["metadata"]["originalPostingDate"], "%Y-%m-%d").date()
+
+                                if org_post_date > max_date:
                                     try:
-                                        insert_varibles_into_table(cursor, connection, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " ")).get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
+                                        insert_varibles_into_table(conn, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " ")).get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
                                             [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
                                     except Exception:
                                         pass
+                                elif org_post_date == max_date:
+                                    if res["uuid"] not in max_date_uuid_list:
+                                        try:
+                                            insert_varibles_into_table(conn, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " ")).get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
+                                                [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
+                                        except Exception:
+                                            pass
+                                    else:
+                                        continue
                                 else:
-                                    continue
-                            else:
-                                break
-                    else:
-                        break
+                                    break
+                        else:
+                            break
 
-        else:  # for full crawl
-            for page in range(2000):
-                r = requests.get(
-                    "https://api.mycareersfuture.gov.sg/v2/jobs?limit=100&page=" + str(page) + "&sortBy=new_posting_date")
-                if (r.status_code == 200):
-                    result = json.loads(r.text)
-                    if len(result["results"]) != 0:
-                        for res in result["results"]:
-                            try:
-                                insert_varibles_into_table(cursor, connection, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " ")).get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
-                                    [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
-                            except (Exception, Error) as error:
-                                print("error:", error)
-                                pass
-                    else:
-                        break
+            else:
+                #  ___ _   _ _    _       ___ ___    ___      ___
+                # | __| | | | |  | |     / __| _ \  /_\ \    / / |
+                # | _|| |_| | |__| |__  | (__|   / / _ \ \/\/ /| |__
+                # |_|  \___/|____|____|  \___|_|_\/_/ \_\_/\_/ |____|
+                print("Start Full Crawl")
+                for page in range(2000):
+                    r = requests.get(
+                        "https://api.mycareersfuture.gov.sg/v2/jobs?limit=100&page=" + str(page) + "&sortBy=new_posting_date")
+                    if (r.status_code == 200):
+                        result = json.loads(r.text)
+                        if len(result["results"]) != 0:
+                            for res in result["results"]:
+                                try:
+                                    insert_varibles_into_table(conn, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " ")).get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
+                                        [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
+                                except Exception as e:
+                                    print("Error while insert:", e)
+                                    pass
+                        else:
+                            break
 
-    except (Exception, Error) as error:
-        print("Error while connecting to PostgreSQL", error)
+    except Exception as e:
+        print("Error while connecting to PostgreSQL:", e)
     finally:
-        if (connection):
-            cursor.close()
-            connection.close()
+        if (conn):
+            conn.close()
             print("PostgreSQL connection is closed")
-
-    # 2)insert into postgres mycareerfuture table
-
-    if(fullcrawl):
-        return f"Start Full Crawl {fullcrawl}!"
-
     ###################### JIE YUAN END HERE ###############
     # 3)trigger cleaning
     clean()
+    # 4) update database to say crawling ended
     with db.connect() as conn:
         conn.execute("UPDATE mle SET value = '0' WHERE key='crawling'")
     print("Crawl Finish")
+
+    # 5) Count number of new job
     with db.connect() as conn:
         numberOfJobAfter = int(conn.execute(
             "SELECT count(*) FROM careers").fetchone()[0])
@@ -336,7 +358,6 @@ def predict():
 
 @app.route("/stats")
 def stats():
-
     rsquarevalue = [{"name": str(
         x+1)+" Jun 2022",  "R Square Value":  random.randint(80, 100)} for x in range(8)]
     RSME = [{"name": str(
@@ -372,3 +393,5 @@ def updateData():
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
+
+# ASCII ART FROM: https://patorjk.com/software/taag/#p=display&f=Small&t=HALF%20CRAWL
