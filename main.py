@@ -44,7 +44,7 @@ def insert_varibles_into_table(conn, uuid, title, description, minimumYearsExper
               totalNumberOfView, totalNumberJobApplication, originalPostingDate, expiryDate, links, postedCompany, minsalary, maxsalary, avgsalary)
     conn.execute(PSql_insert_query, record)
     # connection.commit()
-    print(".", sep="")
+    print(".", end="")
 
 
 def init_db_connection():
@@ -180,7 +180,7 @@ def crawl():
     if (isCrawling):
         return f"Already Crawling, please wait!"
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Started%20at%20"+str(datetime.now()))
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Started%20at%20"+str(datetime.now())[0:-7])
 
     # Start to Crawl Code Here
     print("Start to Crawl")
@@ -294,14 +294,14 @@ def crawl():
         numberOfJobAfter = int(conn.execute(
             "SELECT count(*) FROM careers").fetchone()[0])
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Ended%20at%20"+str(datetime.now())+"|Number%20Of%20New%20Jobs:"+str(numberOfJobAfter-numberOfJobBefore))
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Ended%20at%20"+str(datetime.now())[0:-7]+"%0ANumber%20Of%20New%20Jobs:%20"+str(numberOfJobAfter-numberOfJobBefore))
     # End of Crawl
     return f"Thank you for waiting!"
 
 
 def clean():
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Cleaning%20Started%20at%20"+str(datetime.now()))
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Cleaning%20Started%20at%20"+str(datetime.now())[0:-7])
     ########### Start Cleaning ############
     ######## Anna start here ###########
     # 1) read all data from careers table where column included is null
@@ -335,18 +335,18 @@ def clean():
     ######## Anna end here #########
     ########## End Cleaning ##############
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Cleaning%20Ended%20at%20"+str(datetime.now())+"|Number%20Of%20Flagged:"+str(numberOfFlagedAfter-numberOfFlagedBefore))
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Cleaning%20Ended%20at%20"+str(datetime.now())[0:-7]+"%0ANumber%20Of%20Flagged:%20"+str(numberOfFlagedAfter-numberOfFlagedBefore))
     train()
 
 
 def train():
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Started%20at%20"+str(datetime.now()))
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Started%20at%20"+str(datetime.now())[0:-7])
     time.sleep(15)
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Ended%20at%20"+str(datetime.now()))
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Ended%20at%20"+str(datetime.now())[0:-7])
 
 
 @app.route("/predict")
@@ -370,7 +370,7 @@ def stats():
 @app.route("/outlier")
 def data():
     df = pd.read_sql(
-        "select uuid, title, left(description,50) as description, skills, numberofvacancies, categories, positionlevels, minsalary, maxsalary , remarks from careers where status = 1", db.connect())
+        "select uuid, title, left(description,50) as description, skills, numberofvacancies, categories, positionlevels, postedcompany,employmenttypes, minsalary, maxsalary , remarks from careers where status = 1", db.connect())
 
     return Response(json.dumps([{v: x[k] for (k, v) in enumerate(df)}for x in df.values]
                                ),  mimetype='application/json')
