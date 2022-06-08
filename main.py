@@ -44,7 +44,7 @@ def insert_varibles_into_table(conn, uuid, title, description, minimumYearsExper
               totalNumberOfView, totalNumberJobApplication, originalPostingDate, expiryDate, links, postedCompany, minsalary, maxsalary, avgsalary)
     conn.execute(PSql_insert_query, record)
     # connection.commit()
-    print(".", end="")
+    print(".", end="", flush=True)
 
 
 def init_db_connection():
@@ -100,33 +100,37 @@ db = init_db_connection()
 
 @app.route('/', methods=['GET'])
 def index():
-    votes = []
-    with db.connect() as conn:
-        # Execute the query and fetch all results
-        recent_votes = conn.execute(
-            "SELECT * from mle"
-        ).fetchall()
-        # Convert the results into a list of dicts representing votes
-        for row in recent_votes:
-            votes.append({
-                'candidate': row[0],
-                'time_cast': row[1]
-            })
+    # votes = []
+    # with db.connect() as conn:
+    #     # Execute the query and fetch all results
+    #     recent_votes = conn.execute(
+    #         "SELECT * from mle"
+    #     ).fetchall()
+    #     # Convert the results into a list of dicts representing votes
+    #     for row in recent_votes:
+    #         votes.append({
+    #             'candidate': row[0],
+    #             'time_cast': row[1]
+    #         })
 
-        stmt = sqlalchemy.text(
-            "SELECT num_votes FROM totals WHERE candidate=:candidate")
-        # Count number of votes for tabs
-        tab_result = conn.execute(stmt, candidate="TABS").fetchone()
-        tab_count = tab_result[0] if tab_result is not None else 0
-        # Count number of votes for spaces
-        space_result = conn.execute(stmt, candidate="SPACES").fetchone()
-        space_count = space_result[0] if space_result is not None else 0
+    #     stmt = sqlalchemy.text(
+    #         "SELECT num_votes FROM totals WHERE candidate=:candidate")
+    #     # Count number of votes for tabs
+    #     tab_result = conn.execute(stmt, candidate="TABS").fetchone()
+    #     tab_count = tab_result[0] if tab_result is not None else 0
+    #     # Count number of votes for spaces
+    #     space_result = conn.execute(stmt, candidate="SPACES").fetchone()
+    #     space_count = space_result[0] if space_result is not None else 0
 
-    return render_template(
-        'index.html',
-        recent_votes=votes,
-        tab_count=tab_count,
-        space_count=space_count
+    # return render_template(
+    #     'index.html',
+    #     recent_votes=votes,
+    #     tab_count=tab_count,
+    #     space_count=space_count
+    # )
+    return Response(
+        status=200,
+        response="Backup Up and Running"
     )
 
 
