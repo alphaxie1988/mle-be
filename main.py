@@ -104,8 +104,7 @@ def index():
     with db.connect() as conn:
         # Execute the query and fetch all results
         recent_votes = conn.execute(
-            "SELECT candidate, time_cast FROM votes "
-            "ORDER BY time_cast DESC LIMIT 5"
+            "SELECT * from mle"
         ).fetchall()
         # Convert the results into a list of dicts representing votes
         for row in recent_votes:
@@ -193,7 +192,7 @@ def crawl():
     # 1)crawl from careersgfuture order by posted dated if full crawl ie(date is null), crawl everything else crawl until date
     try:
         with db.connect() as conn:
-        
+
             ####### end of connection ####
             max_date = pd.read_sql(
                 "select max(careers.originalpostingdate) from careers", conn).iloc[0, 0]
@@ -229,14 +228,14 @@ def crawl():
 
                                 if org_post_date > max_date:
                                     try:
-                                        insert_varibles_into_table(conn, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " ")).get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
+                                        insert_varibles_into_table(conn, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " "), 'html.parser').get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
                                             [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
                                     except Exception:
                                         pass
                                 elif org_post_date == max_date:
                                     if res["uuid"] not in max_date_uuid_list:
                                         try:
-                                            insert_varibles_into_table(conn, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " ")).get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
+                                            insert_varibles_into_table(conn, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " "), 'html.parser').get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
                                                 [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
                                         except Exception:
                                             pass
@@ -261,7 +260,7 @@ def crawl():
                         if len(result["results"]) != 0:
                             for res in result["results"]:
                                 try:
-                                    insert_varibles_into_table(conn, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " ")).get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
+                                    insert_varibles_into_table(conn, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " "), 'html.parser').get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
                                         [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
                                 except Exception as e:
                                     print("Error while insert:", e)
@@ -270,7 +269,12 @@ def crawl():
                             break
 
     except Exception as e:
-        print("Error while connecting to PostgreSQL:", e)
+        logger.exception(e)
+        return Response(
+            status=500,
+            response="Unable to Crawl Propoerly! Please check the "
+            "application logs for more details."
+        )
     finally:
         if (conn):
             conn.close()
@@ -291,6 +295,10 @@ def crawl():
         "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Ended%20at%20"+str(datetime.now())[0:-7]+"%0ANumber%20Of%20New%20Jobs:%20"+str(numberOfJobAfter-numberOfJobBefore))
     # End of Crawl
     return f"Thank you for waiting!"
+    # return Response(
+    # status=200,
+    # response="Thank you for waiting!"
+    # )
 
 
 def clean():
@@ -361,7 +369,7 @@ def stats():
         x+1)+" Jun 2022",  "RSME":  random.randint(800, 1000)/1000} for x in range(8)]
     newjob = [{"name": str(
         x+1)+" Jun 2022",  "New Job":  random.randint(140, 200)} for x in range(8)]
-    return Response(json.dumps({"rsquarevalue": rsquarevalue, "RSME": RSME, "newjob": newjob}),  mimetype='application/json')
+    return Response(json.dumps({"rsquarevalue": rsquarevalue, "RSME": RSME, "newjob": newjob}), 200, mimetype='application/json')
 
 
 @app.route("/outlier")
@@ -370,7 +378,7 @@ def data():
         "select uuid, title, left(description,50) as description, skills, numberofvacancies, categories, positionlevels, postedcompany,employmenttypes, minsalary, maxsalary , remarks from careers where status = 1", db.connect())
 
     return Response(json.dumps([{v: x[k] for (k, v) in enumerate(df)}for x in df.values]
-                               ),  mimetype='application/json')
+                               ), 200,  mimetype='application/json')
 
 
 @app.route('/outlier', methods=['PUT'])
