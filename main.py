@@ -16,7 +16,6 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import pandas as pd
 import requests
-from flask import Response
 from flask_cors import CORS
 from dotenv import load_dotenv
 
