@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# import os
-# import pytest
+import os
+import pytest
 
-# import main
-
-
-# @pytest.fixture
-# def client():
-#     main.app.testing = True
-#     return main.app.test_client()
+import main
 
 
-# def test_handler_no_env_variable(client):
-#     r = client.get("/")
+@pytest.fixture
+def client():
+    main.app.testing = True
+    return main.app.test_client()
 
-#     assert r.data.decode() == "Hello World!"
-#     assert r.status_code == 200
+
+def test_handler_no_env_variable(client):
+    r = client.get("/predict")
+    print(r.data.decode())
+    # assert r.data.decode() == "Hello World!"
+    assert r.status_code == 200
 
 
 # def test_handler_with_env_variable(client):

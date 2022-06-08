@@ -193,13 +193,7 @@ def crawl():
     # 1)crawl from careersgfuture order by posted dated if full crawl ie(date is null), crawl everything else crawl until date
     try:
         with db.connect() as conn:
-            # connection = psycopg2.connect(
-            #     host="localhost",
-            #     database="mycareersfuture",
-            #     user="postgres",
-            #     password="Password123ajjw")
-            # connection.autocommit = True
-            # cursor = connection.cursor()
+        
             ####### end of connection ####
             max_date = pd.read_sql(
                 "select max(careers.originalpostingdate) from careers", conn).iloc[0, 0]
@@ -393,6 +387,10 @@ def updateData():
                 "update careers set status = 4, remarks=Concat(remarks,'Admin marked as not OK|') where uuid in ("+str(request.get_json()['payload'])[1:-1]+")")
     return Response(json.dumps({"success": True}), 200,  mimetype='application/json')
 
+
+# Set Crawling = False when starting
+with db.connect() as conn:
+    conn.execute("UPDATE mle SET value = '0' WHERE key='crawling'")
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
