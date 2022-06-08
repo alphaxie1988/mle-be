@@ -129,7 +129,7 @@ def index():
     # )
     return Response(
         status=200,
-        response="Backup Up and Running"
+        response="Up and Running: Student Project by SMU"
     )
 
 
