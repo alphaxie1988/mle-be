@@ -19,6 +19,17 @@ import requests
 from flask_cors import CORS
 from dotenv import load_dotenv
 
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.metrics import mean_squared_error
+from sklearn import feature_extraction
+from sklearn import model_selection
+from keras.layers import Dense
+from keras.layers import Dropout
+from keras.models import Sequential
+import keras
+import pickle
+
+
 #   ___ _  _ ___ _____ ___   _   _    ___ ___ ___ _  _  ___
 #  |_ _| \| |_ _|_   _|_ _| /_\ | |  |_ _/ __|_ _| \| |/ __|
 #   | || .` || |  | |  | | / _ \| |__ | |\__ \| || .` | (_ |
@@ -347,21 +358,140 @@ def clean():
     train()
 
 
+@app.route("/train")
 def train():
     requests.get(
         "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Started%20at%20"+str(datetime.now())[0:-7])
-    time.sleep(15)
+    #time.sleep(15)
+
+    with db.connect() as conn:
+        train_days = pd.read_sql("select value from mle where key = 'numOfDaysToTrain'", conn)
+        print("select * from careers where originalpostingdate >= current_date - INTERVAL '" + str(train_days.iloc[0,0]) + " day'")
+        df_raw = pd.read_sql("select * from careers where originalpostingdate >= current_date - INTERVAL '" + str(train_days.iloc[0,0]) + " day'", conn)
+
+
+    #df_main = df_raw.head(1000)
+    df_main = df_raw.copy()
+    df_main = df_main[df_main["avgsalary"]<15000]
+    df_main = df_main[df_main["minimumyearsexperience"]<=30]
+    df_main = df_main[df_main["avgsalary"]>1500]
+    df_main.fillna(value='', inplace=True)
+    print(df_main.info())
+    df_main['skills'] = df_main['skills'].str.replace(' ','_')
+    df_main['skills'] = df_main['skills'].str.replace('|',' ')
+
+    x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, df_main.columns != 'avgsalary'], df_main["avgsalary"], test_size = 0.2, random_state = 2021)
+    x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, ~(df_main.columns.isin(['avgsalary','minsalary','maxsalary']))], df_main[["minsalary","maxsalary"]], test_size = 0.2, random_state = 2021)
+
+    # Word vectorizer
+    count_vectorizer = feature_extraction.text.CountVectorizer()#min_df = 0.01, max_df = 0.5, stop_words = 'english'
+    x_train_skills = count_vectorizer.fit_transform(x_train["skills"]) #fit dont put fit into test - fit mean you want to fix the module
+    x_test_skills = count_vectorizer.transform(x_test["skills"])
+    x_test_skills_df= pd.DataFrame(x_test_skills.todense(),columns=count_vectorizer.get_feature_names())
+    x_train_skills_df= pd.DataFrame(x_train_skills.todense(),columns=count_vectorizer.get_feature_names())
+
+
+    x_train = pd.concat([x_train_skills_df, x_train[['minimumyearsexperience','numberofvacancies','positionlevels','categories']].reset_index(drop=True),], axis=1)
+    x_test = pd.concat([x_test_skills_df, x_test[['minimumyearsexperience','numberofvacancies','positionlevels','categories']].reset_index(drop=True),], axis=1)
+
+
+    #Prepare HotEncoder - To change categorical into 1,0
+    enc = OneHotEncoder(handle_unknown = 'ignore')
+
+    #This are column that are categorical
+    categorical = ['positionlevels']
+    enc.fit(x_train[categorical])
+    feature_name = enc.get_feature_names(x_train[categorical].columns)
+    x_train_one_hot_data = enc.fit_transform(x_train[categorical]).toarray()
+    x_test_one_hot_data = enc.transform(x_test[categorical]).toarray()
+
+    x_train_one_hot_data_df= pd.DataFrame(x_train_one_hot_data, columns= feature_name)
+    x_test_one_hot_data_df= pd.DataFrame(x_test_one_hot_data, columns= feature_name)
+    x_train = pd.concat([x_train_skills_df,x_train_one_hot_data_df, x_train[['minimumyearsexperience','numberofvacancies']].reset_index(drop=True),], axis=1)
+    x_test = pd.concat([x_test_skills_df,x_test_one_hot_data_df, x_test[['minimumyearsexperience','numberofvacancies']].reset_index(drop=True),], axis=1)
+    print(x_train.shape)
+    type(x_train)
+
+
+    nn = Sequential()
+    nn.add(Dense(78, input_dim=x_train.shape[1], activation='relu'))
+    nn.add(Dropout(0.2))
+    nn.add(Dense(39, activation='relu'))
+    nn.add(Dropout(0.2))
+    nn.add(Dense(19, activation='relu'))
+    nn.add(Dropout(0.2))
+    nn.add(Dense(10, activation='relu'))
+    nn.add(Dropout(0.2))
+    #nn.add(layers.Dense(1, activation=''))
+    nn.add(Dense(1, kernel_initializer='normal'))
+        # Compile model
+    nn.compile(loss='mean_squared_error', optimizer='adam')
+    #nn.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    
+    # minsalary model
+    history = nn.fit(x_train, y_train['minsalary'], epochs=2, batch_size=100, verbose=2)
+    y_pred_test_nn = nn.predict(x_test)
+    nn.save("model_min")
+
+    # maxsalary model
+    history = nn.fit(x_train, y_train['maxsalary'], epochs=2, batch_size=100, verbose=2)
+    y_pred_test_nn = nn.predict(x_test)
+    nn.save("model_max")
+
+    with open("encoder.pickle","wb") as f:
+        pickle.dump(enc, f)
+
+    with open("count_vectorizer.pickle","wb") as f:
+        pickle.dump(count_vectorizer,f)
+
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
     requests.get(
         "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Ended%20at%20"+str(datetime.now())[0:-7])
 
+    return 0
 
 @app.route("/predict")
 def predict():
     # model = pickle.load("gs://sadsaas/asd.model")
     # return model.predict(job)
-    return Response(json.dumps({"pMinSal": random.randint(1000, 20000), "pMaxSal": random.randint(1000, 20000)}),  mimetype='application/json')
+    
+    # Dummy Data
+    with db.connect() as conn:
+        x_test = pd.read_sql("select * from careers where uuid='3639cc285d5faaeff207353de592bac2'", conn)
+
+
+    if not (os.path.exists("encoder.pickle") and os.path.exists("count_vectorizer.pickle") and os.path.exists("model_min") and os.path.exists("model_max")):
+        train()
+
+    model_min = keras.models.load_model("model_min")
+    model_max = keras.models.load_model("model_max")
+
+    # Load one hot encoder
+    f_enc = open("encoder.pickle", "rb")
+    enc = pickle.load(f_enc)
+
+    f_vect = open("count_vectorizer.pickle", "rb")
+    count_vectorizer = pickle.load(f_vect)    
+
+
+    # Word Vectorizer
+    x_test_skills = count_vectorizer.transform(x_test["skills"])
+    x_test_skills_df= pd.DataFrame(x_test_skills.todense(),columns=count_vectorizer.get_feature_names())
+
+    #This are column that are categorical
+    categorical = ['positionlevels']
+    x_test_one_hot_data = enc.transform(x_test[categorical]).toarray()
+
+    feature_name = enc.get_feature_names()
+    x_test_one_hot_data_df= pd.DataFrame(x_test_one_hot_data, columns= feature_name)
+    
+    x_test = pd.concat([x_test_skills_df,x_test_one_hot_data_df, x_test[['minimumyearsexperience','numberofvacancies']].reset_index(drop=True),], axis=1)
+
+    y_pred_test_nn_min = model_min.predict(x_test)
+    y_pred_test_nn_max = model_max.predict(x_test)
+
+    return Response(json.dumps({"pMinSal": int(y_pred_test_nn_min[0][0]), "pMaxSal": int(y_pred_test_nn_max[0][0])}),  mimetype='application/json')
 
 
 @app.route("/stats")
