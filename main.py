@@ -183,6 +183,15 @@ def save_vote():
     )
 
 
+@app.route("/resetcrawl")
+def resetcrawl():
+    with db.connect() as conn:
+        conn.execute("update mle set value = 0 where key = 'crawling'")
+    return Response(
+        status=200,
+        response="Reset success")
+
+
 @app.route("/crawl")
 def crawl():
     # Check if system is crawling
@@ -528,10 +537,6 @@ def updateData():
                 "update careers set status = 4, remarks=Concat(remarks,'Admin marked as not OK|') where uuid in ("+str(request.get_json()['payload'])[1:-1]+")")
     return Response(json.dumps({"success": True}), 200,  mimetype='application/json')
 
-
-# Set Crawling = False when starting
-with db.connect() as conn:
-    conn.execute("UPDATE mle SET value = '0' WHERE key='crawling'")
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
