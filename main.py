@@ -20,7 +20,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, r2_score
 from sklearn import feature_extraction
 from sklearn import model_selection
 from keras.layers import Dense
@@ -28,7 +28,8 @@ from keras.layers import Dropout
 from keras.models import Sequential
 import keras
 import pickle
-
+from numpy.random import seed
+import tensorflow as tf
 
 #   ___ _  _ ___ _____ ___   _   _    ___ ___ ___ _  _  ___
 #  |_ _| \| |_ _|_   _|_ _| /_\ | |  |_ _/ __|_ _| \| |/ __|
@@ -373,11 +374,13 @@ def train():
         "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Started%20at%20"+str(datetime.now())[0:-7])
     #time.sleep(15)
 
+    seed(2021)
+    tf.random.set_seed(2021)
+
     with db.connect() as conn:
         train_days = pd.read_sql("select value from mle where key = 'numOfDaysToTrain'", conn)
         print("select * from careers where originalpostingdate >= current_date - INTERVAL '" + str(train_days.iloc[0,0]) + " day'")
         df_raw = pd.read_sql("select * from careers where originalpostingdate >= current_date - INTERVAL '" + str(train_days.iloc[0,0]) + " day'", conn)
-
 
     #df_main = df_raw.head(1000)
     df_main = df_raw.copy()
@@ -389,7 +392,7 @@ def train():
     df_main['skills'] = df_main['skills'].str.replace(' ','_')
     df_main['skills'] = df_main['skills'].str.replace('|',' ')
 
-    x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, df_main.columns != 'avgsalary'], df_main["avgsalary"], test_size = 0.2, random_state = 2021)
+    #x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, df_main.columns != 'avgsalary'], df_main["avgsalary"], test_size = 0.2, random_state = 2021)
     x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, ~(df_main.columns.isin(['avgsalary','minsalary','maxsalary']))], df_main[["minsalary","maxsalary"]], test_size = 0.2, random_state = 2021)
 
     # Word vectorizer
@@ -436,22 +439,63 @@ def train():
         # Compile model
     nn.compile(loss='mean_squared_error', optimizer='adam')
     #nn.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    
+
+    print(x_test.shape)
+
     # minsalary model
-    history = nn.fit(x_train, y_train['minsalary'], epochs=2, batch_size=100, verbose=2)
-    y_pred_test_nn = nn.predict(x_test)
-    nn.save("model_min")
+    history_min = nn.fit(x_train, y_train['minsalary'], epochs=20, batch_size=100, verbose=2)
+    y_pred_test_nn_min = nn.predict(x_test)
+
+    min_MSE = mean_squared_error(y_test['minsalary'], y_pred_test_nn_min)
+    min_RMSE = mean_squared_error(y_test['minsalary'], y_pred_test_nn_min, squared=False)
+    min_R2 = r2_score(y_test['minsalary'], y_pred_test_nn_min)
+    min_adj_R2 = 1-(1-r2_score(y_test['minsalary'], y_pred_test_nn_min))*((x_test.shape[0]-1)/(x_test.shape[0]-x_test.shape[1]-1))
+
+    print('Min salary MSE: ' + str(min_MSE))
+    print('Min salary RMSE: ' + str(min_RMSE))
+    print('Min salary R2:' + str(min_R2))
+    print('Min salary Adjusted R2: ' + str(min_adj_R2))
+
 
     # maxsalary model
-    history = nn.fit(x_train, y_train['maxsalary'], epochs=2, batch_size=100, verbose=2)
-    y_pred_test_nn = nn.predict(x_test)
+    history_max = nn.fit(x_train, y_train['maxsalary'], epochs=20, batch_size=100, verbose=2)
+    y_pred_test_nn_max = nn.predict(x_test)
+
+    max_MSE = mean_squared_error(y_test['maxsalary'], y_pred_test_nn_max)
+    max_RMSE = mean_squared_error(y_test['maxsalary'], y_pred_test_nn_max, squared=False)
+    max_R2 = r2_score(y_test['maxsalary'], y_pred_test_nn_max)
+    max_adj_R2 = 1-(1-r2_score(y_test['maxsalary'], y_pred_test_nn_max))*((x_test.shape[0]-1)/(x_test.shape[0]-x_test.shape[1]-1))
+
+    print('Max salary MSE: ' + str(max_MSE))
+    print('Max salary RMSE: ' + str(max_RMSE))
+    print('Max salary R-square:' + str(max_R2))
+    print('Max salary Adjusted R2: ' + str(max_adj_R2))
+
+    # Save Model
+    nn.save("model_min")
     nn.save("model_max")
 
+    # Save One-Hot-Encoder
     with open("encoder.pickle","wb") as f:
         pickle.dump(enc, f)
 
+    # Save Count Vectorizer
     with open("count_vectorizer.pickle","wb") as f:
         pickle.dump(count_vectorizer,f)
+
+    # Save Result in Model DB
+    with db.connect() as conn:
+        db_row = conn.execute(
+            "select count(*) from model")
+        
+        if db_row == 0:
+            conn.execute(
+                "insert into model values (default, 'NN', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1)")
+        else:
+            conn.execute(
+                "update model set selected = 0 where id = (select max(id) from model)")
+            conn.execute(
+                "insert into model values (default, 'NN', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1)")
 
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
@@ -539,6 +583,6 @@ def updateData():
 
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=8080, debug=True)
+    app.run(host='127.0.0.1', port=8080, debug=False)
 
 # ASCII ART FROM: https://patorjk.com/software/taag/#p=display&f=Small&t=HALF%20CRAWL
