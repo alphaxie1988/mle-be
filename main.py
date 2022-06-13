@@ -60,10 +60,10 @@ def insert_varibles_into_table(conn, uuid, title, description, minimumYearsExper
 
 def init_db_connection():
     db_config = {
-        'pool_size': 5,
-        'max_overflow': 2,
-        'pool_timeout': 30,
-        'pool_recycle': 1800,
+        'pool_size': 10,
+        'max_overflow': 4,
+        'pool_timeout': 300,
+        'pool_recycle': 3600,
     }
     return init_unix_connection_engine(db_config)
 
@@ -255,6 +255,7 @@ def crawl():
                                         insert_varibles_into_table(conn, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " "), 'html.parser').get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
                                             [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
                                     except Exception:
+                                        print("x", end="", flush=True)
                                         pass
                                 elif org_post_date == max_date:
                                     if res["uuid"] not in max_date_uuid_list:
@@ -262,6 +263,7 @@ def crawl():
                                             insert_varibles_into_table(conn, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " "), 'html.parser').get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
                                                 [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
                                         except Exception:
+                                            print("x", end="", flush=True)
                                             pass
                                     else:
                                         continue
@@ -287,7 +289,7 @@ def crawl():
                                     insert_varibles_into_table(conn, res["uuid"], res["title"], BeautifulSoup(res["description"].replace("\n", " "), 'html.parser').get_text(), res["minimumYearsExperience"], "|".join([x["skill"] for x in res["skills"]]), res["numberOfVacancies"], "|".join([x["category"] for x in res["categories"]]), "|".join([x["employmentType"] for x in res["employmentTypes"]]), "|".join(
                                         [x["position"] for x in res["positionLevels"]]), res["metadata"]["totalNumberOfView"], res["metadata"]["totalNumberJobApplication"], res["metadata"]["originalPostingDate"], res["metadata"]["expiryDate"], res["_links"]["self"]["href"], res["postedCompany"]["name"], res["salary"]["minimum"], res["salary"]["maximum"], int((res["salary"]["maximum"]+res["salary"]["minimum"]) / 2))
                                 except Exception as e:
-                                    print("Error while insert:", e)
+                                    print("x", end="", flush=True)
                                     pass
                         else:
                             break
@@ -372,58 +374,69 @@ def clean():
 def train():
     requests.get(
         "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Started%20at%20"+str(datetime.now())[0:-7])
-    #time.sleep(15)
+    # time.sleep(15)
 
     seed(2021)
     tf.random.set_seed(2021)
 
     with db.connect() as conn:
-        train_days = pd.read_sql("select value from mle where key = 'numOfDaysToTrain'", conn)
-        print("select * from careers where originalpostingdate >= current_date - INTERVAL '" + str(train_days.iloc[0,0]) + " day'")
-        df_raw = pd.read_sql("select * from careers where originalpostingdate >= current_date - INTERVAL '" + str(train_days.iloc[0,0]) + " day'", conn)
+        train_days = pd.read_sql(
+            "select value from mle where key = 'numOfDaysToTrain'", conn)
+        print("select * from careers where originalpostingdate >= current_date - INTERVAL '" +
+              str(train_days.iloc[0, 0]) + " day'")
+        df_raw = pd.read_sql("select * from careers where originalpostingdate >= current_date - INTERVAL '" +
+                             str(train_days.iloc[0, 0]) + " day'", conn)
 
     #df_main = df_raw.head(1000)
     df_main = df_raw.copy()
-    df_main = df_main[df_main["avgsalary"]<15000]
-    df_main = df_main[df_main["minimumyearsexperience"]<=30]
-    df_main = df_main[df_main["avgsalary"]>1500]
+    df_main = df_main[df_main["avgsalary"] < 15000]
+    df_main = df_main[df_main["minimumyearsexperience"] <= 30]
+    df_main = df_main[df_main["avgsalary"] > 1500]
     df_main.fillna(value='', inplace=True)
     print(df_main.info())
-    df_main['skills'] = df_main['skills'].str.replace(' ','_')
-    df_main['skills'] = df_main['skills'].str.replace('|',' ')
+    df_main['skills'] = df_main['skills'].str.replace(' ', '_')
+    df_main['skills'] = df_main['skills'].str.replace('|', ' ')
 
     #x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, df_main.columns != 'avgsalary'], df_main["avgsalary"], test_size = 0.2, random_state = 2021)
-    x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, ~(df_main.columns.isin(['avgsalary','minsalary','maxsalary']))], df_main[["minsalary","maxsalary"]], test_size = 0.2, random_state = 2021)
+    x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, ~(df_main.columns.isin(
+        ['avgsalary', 'minsalary', 'maxsalary']))], df_main[["minsalary", "maxsalary"]], test_size=0.2, random_state=2021)
 
     # Word vectorizer
-    count_vectorizer = feature_extraction.text.CountVectorizer()#min_df = 0.01, max_df = 0.5, stop_words = 'english'
-    x_train_skills = count_vectorizer.fit_transform(x_train["skills"]) #fit dont put fit into test - fit mean you want to fix the module
+    # min_df = 0.01, max_df = 0.5, stop_words = 'english'
+    count_vectorizer = feature_extraction.text.CountVectorizer()
+    # fit dont put fit into test - fit mean you want to fix the module
+    x_train_skills = count_vectorizer.fit_transform(x_train["skills"])
     x_test_skills = count_vectorizer.transform(x_test["skills"])
-    x_test_skills_df= pd.DataFrame(x_test_skills.todense(),columns=count_vectorizer.get_feature_names())
-    x_train_skills_df= pd.DataFrame(x_train_skills.todense(),columns=count_vectorizer.get_feature_names())
+    x_test_skills_df = pd.DataFrame(
+        x_test_skills.todense(), columns=count_vectorizer.get_feature_names())
+    x_train_skills_df = pd.DataFrame(
+        x_train_skills.todense(), columns=count_vectorizer.get_feature_names())
 
+    x_train = pd.concat([x_train_skills_df, x_train[['minimumyearsexperience',
+                        'numberofvacancies', 'positionlevels', 'categories']].reset_index(drop=True), ], axis=1)
+    x_test = pd.concat([x_test_skills_df, x_test[['minimumyearsexperience', 'numberofvacancies',
+                       'positionlevels', 'categories']].reset_index(drop=True), ], axis=1)
 
-    x_train = pd.concat([x_train_skills_df, x_train[['minimumyearsexperience','numberofvacancies','positionlevels','categories']].reset_index(drop=True),], axis=1)
-    x_test = pd.concat([x_test_skills_df, x_test[['minimumyearsexperience','numberofvacancies','positionlevels','categories']].reset_index(drop=True),], axis=1)
+    # Prepare HotEncoder - To change categorical into 1,0
+    enc = OneHotEncoder(handle_unknown='ignore')
 
-
-    #Prepare HotEncoder - To change categorical into 1,0
-    enc = OneHotEncoder(handle_unknown = 'ignore')
-
-    #This are column that are categorical
+    # This are column that are categorical
     categorical = ['positionlevels']
     enc.fit(x_train[categorical])
     feature_name = enc.get_feature_names(x_train[categorical].columns)
     x_train_one_hot_data = enc.fit_transform(x_train[categorical]).toarray()
     x_test_one_hot_data = enc.transform(x_test[categorical]).toarray()
 
-    x_train_one_hot_data_df= pd.DataFrame(x_train_one_hot_data, columns= feature_name)
-    x_test_one_hot_data_df= pd.DataFrame(x_test_one_hot_data, columns= feature_name)
-    x_train = pd.concat([x_train_skills_df,x_train_one_hot_data_df, x_train[['minimumyearsexperience','numberofvacancies']].reset_index(drop=True),], axis=1)
-    x_test = pd.concat([x_test_skills_df,x_test_one_hot_data_df, x_test[['minimumyearsexperience','numberofvacancies']].reset_index(drop=True),], axis=1)
+    x_train_one_hot_data_df = pd.DataFrame(
+        x_train_one_hot_data, columns=feature_name)
+    x_test_one_hot_data_df = pd.DataFrame(
+        x_test_one_hot_data, columns=feature_name)
+    x_train = pd.concat([x_train_skills_df, x_train_one_hot_data_df, x_train[[
+                        'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
+    x_test = pd.concat([x_test_skills_df, x_test_one_hot_data_df, x_test[[
+                       'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
     print(x_train.shape)
     type(x_train)
-
 
     nn = Sequential()
     nn.add(Dense(78, input_dim=x_train.shape[1], activation='relu'))
@@ -436,35 +449,40 @@ def train():
     nn.add(Dropout(0.2))
     #nn.add(layers.Dense(1, activation=''))
     nn.add(Dense(1, kernel_initializer='normal'))
-        # Compile model
+    # Compile model
     nn.compile(loss='mean_squared_error', optimizer='adam')
     #nn.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     print(x_test.shape)
 
     # minsalary model
-    history_min = nn.fit(x_train, y_train['minsalary'], epochs=20, batch_size=100, verbose=2)
+    history_min = nn.fit(
+        x_train, y_train['minsalary'], epochs=20, batch_size=100, verbose=2)
     y_pred_test_nn_min = nn.predict(x_test)
 
     min_MSE = mean_squared_error(y_test['minsalary'], y_pred_test_nn_min)
-    min_RMSE = mean_squared_error(y_test['minsalary'], y_pred_test_nn_min, squared=False)
+    min_RMSE = mean_squared_error(
+        y_test['minsalary'], y_pred_test_nn_min, squared=False)
     min_R2 = r2_score(y_test['minsalary'], y_pred_test_nn_min)
-    min_adj_R2 = 1-(1-r2_score(y_test['minsalary'], y_pred_test_nn_min))*((x_test.shape[0]-1)/(x_test.shape[0]-x_test.shape[1]-1))
+    min_adj_R2 = 1-(1-r2_score(y_test['minsalary'], y_pred_test_nn_min))*(
+        (x_test.shape[0]-1)/(x_test.shape[0]-x_test.shape[1]-1))
 
     print('Min salary MSE: ' + str(min_MSE))
     print('Min salary RMSE: ' + str(min_RMSE))
     print('Min salary R2:' + str(min_R2))
     print('Min salary Adjusted R2: ' + str(min_adj_R2))
 
-
     # maxsalary model
-    history_max = nn.fit(x_train, y_train['maxsalary'], epochs=20, batch_size=100, verbose=2)
+    history_max = nn.fit(
+        x_train, y_train['maxsalary'], epochs=20, batch_size=100, verbose=2)
     y_pred_test_nn_max = nn.predict(x_test)
 
     max_MSE = mean_squared_error(y_test['maxsalary'], y_pred_test_nn_max)
-    max_RMSE = mean_squared_error(y_test['maxsalary'], y_pred_test_nn_max, squared=False)
+    max_RMSE = mean_squared_error(
+        y_test['maxsalary'], y_pred_test_nn_max, squared=False)
     max_R2 = r2_score(y_test['maxsalary'], y_pred_test_nn_max)
-    max_adj_R2 = 1-(1-r2_score(y_test['maxsalary'], y_pred_test_nn_max))*((x_test.shape[0]-1)/(x_test.shape[0]-x_test.shape[1]-1))
+    max_adj_R2 = 1-(1-r2_score(y_test['maxsalary'], y_pred_test_nn_max))*(
+        (x_test.shape[0]-1)/(x_test.shape[0]-x_test.shape[1]-1))
 
     print('Max salary MSE: ' + str(max_MSE))
     print('Max salary RMSE: ' + str(max_RMSE))
@@ -476,18 +494,18 @@ def train():
     nn.save("model_max")
 
     # Save One-Hot-Encoder
-    with open("encoder.pickle","wb") as f:
+    with open("encoder.pickle", "wb") as f:
         pickle.dump(enc, f)
 
     # Save Count Vectorizer
-    with open("count_vectorizer.pickle","wb") as f:
-        pickle.dump(count_vectorizer,f)
+    with open("count_vectorizer.pickle", "wb") as f:
+        pickle.dump(count_vectorizer, f)
 
     # Save Result in Model DB
     with db.connect() as conn:
         db_row = conn.execute(
             "select count(*) from model")
-        
+
         if db_row == 0:
             conn.execute(
                 "insert into model values (default, 'NN', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1)")
@@ -504,15 +522,16 @@ def train():
 
     return 0
 
+
 @app.route("/predict")
 def predict():
     # model = pickle.load("gs://sadsaas/asd.model")
     # return model.predict(job)
-    
+
     # Dummy Data
     with db.connect() as conn:
-        x_test = pd.read_sql("select * from careers where uuid='3639cc285d5faaeff207353de592bac2'", conn)
-
+        x_test = pd.read_sql(
+            "select * from careers where uuid='3639cc285d5faaeff207353de592bac2'", conn)
 
     if not (os.path.exists("encoder.pickle") and os.path.exists("count_vectorizer.pickle") and os.path.exists("model_min") and os.path.exists("model_max")):
         train()
@@ -525,21 +544,23 @@ def predict():
     enc = pickle.load(f_enc)
 
     f_vect = open("count_vectorizer.pickle", "rb")
-    count_vectorizer = pickle.load(f_vect)    
-
+    count_vectorizer = pickle.load(f_vect)
 
     # Word Vectorizer
     x_test_skills = count_vectorizer.transform(x_test["skills"])
-    x_test_skills_df= pd.DataFrame(x_test_skills.todense(),columns=count_vectorizer.get_feature_names())
+    x_test_skills_df = pd.DataFrame(
+        x_test_skills.todense(), columns=count_vectorizer.get_feature_names())
 
-    #This are column that are categorical
+    # This are column that are categorical
     categorical = ['positionlevels']
     x_test_one_hot_data = enc.transform(x_test[categorical]).toarray()
 
     feature_name = enc.get_feature_names()
-    x_test_one_hot_data_df= pd.DataFrame(x_test_one_hot_data, columns= feature_name)
-    
-    x_test = pd.concat([x_test_skills_df,x_test_one_hot_data_df, x_test[['minimumyearsexperience','numberofvacancies']].reset_index(drop=True),], axis=1)
+    x_test_one_hot_data_df = pd.DataFrame(
+        x_test_one_hot_data, columns=feature_name)
+
+    x_test = pd.concat([x_test_skills_df, x_test_one_hot_data_df, x_test[[
+                       'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
 
     y_pred_test_nn_min = model_min.predict(x_test)
     y_pred_test_nn_max = model_max.predict(x_test)
