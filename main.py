@@ -544,7 +544,7 @@ def predict():
     #     x_test = pd.read_sql(
     #         "select * from careers where uuid='92608a6f62190f2425c5259206728352'", conn)
     if not (os.path.exists("encoder.pickle") and os.path.exists("count_vectorizer.pickle") and os.path.exists("model_min") and os.path.exists("model_max")):
-        train()
+        return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
 
     model_min = keras.models.load_model("model_min")
     model_max = keras.models.load_model("model_max")
