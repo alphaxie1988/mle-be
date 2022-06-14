@@ -523,16 +523,26 @@ def train():
     return 0
 
 
-@app.route("/predict")
+@app.route("/predict", methods=['POST'])
 def predict():
     # model = pickle.load("gs://sadsaas/asd.model")
     # return model.predict(job)
-
+    print(request.get_json())
     # Dummy Data
-    with db.connect() as conn:
-        x_test = pd.read_sql(
-            "select * from careers where uuid='92608a6f62190f2425c5259206728352'", conn)
+    data = {'skills': "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobSkills']]),
+            'categories':  "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobCategory']]),
+            'positionlevels':  "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobPositionLevels']]),
+            'employmenttypes':  "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobType']]),
+            'minimumyearsexperience': int(request.get_json()['minimumYOE']),
+            'numberofvacancies': request.get_json()['numberofvacancies'],
+            }
+    print(data)
 
+    x_test = pd.DataFrame(data, index=[0])
+
+    # with db.connect() as conn:
+    #     x_test = pd.read_sql(
+    #         "select * from careers where uuid='92608a6f62190f2425c5259206728352'", conn)
     if not (os.path.exists("encoder.pickle") and os.path.exists("count_vectorizer.pickle") and os.path.exists("model_min") and os.path.exists("model_max")):
         train()
 
@@ -604,6 +614,6 @@ def updateData():
 
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=8080, debug=False)
+    app.run(host='127.0.0.1', port=8080, debug=True)
 
 # ASCII ART FROM: https://patorjk.com/software/taag/#p=display&f=Small&t=HALF%20CRAWL
