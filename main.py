@@ -472,7 +472,7 @@ def train():
     print('Min salary RMSE: ' + str(min_RMSE))
     print('Min salary R2:' + str(min_R2))
     print('Min salary Adjusted R2: ' + str(min_adj_R2))
-
+    nn.save("model_min")
     # maxsalary model
     history_max = nn.fit(
         x_train, y_train['maxsalary'], epochs=20, batch_size=100, verbose=2)
@@ -491,7 +491,6 @@ def train():
     print('Max salary Adjusted R2: ' + str(max_adj_R2))
 
     # Save Model
-    nn.save("model_min")
     nn.save("model_max")
 
     # Save One-Hot-Encoder
