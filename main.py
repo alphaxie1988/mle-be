@@ -532,7 +532,7 @@ def predict():
     # Dummy Data
     with db.connect() as conn:
         x_test = pd.read_sql(
-            "select * from careers where uuid='"92608a6f62190f2425c5259206728352"'", conn)
+            "select * from careers where uuid='92608a6f62190f2425c5259206728352'", conn)
 
     if not (os.path.exists("encoder.pickle") and os.path.exists("count_vectorizer.pickle") and os.path.exists("model_min") and os.path.exists("model_max")):
         train()
