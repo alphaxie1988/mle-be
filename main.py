@@ -403,7 +403,8 @@ def train():
 
     # Word vectorizer
     # min_df = 0.01, max_df = 0.5, stop_words = 'english'
-    count_vectorizer = feature_extraction.text.CountVectorizer()
+    count_vectorizer = feature_extraction.text.CountVectorizer(
+        min_df=0.01, max_df=0.5, stop_words='english')
     # fit dont put fit into test - fit mean you want to fix the module
     x_train_skills = count_vectorizer.fit_transform(x_train["skills"])
     x_test_skills = count_vectorizer.transform(x_test["skills"])
