@@ -383,9 +383,9 @@ def train():
         train_days = pd.read_sql(
             "select value from mle where key = 'numOfDaysToTrain'", conn)
         print("select * from careers where originalpostingdate >= current_date - INTERVAL '" +
-              str(train_days.iloc[0, 0]) + " day'")
+              str(train_days.iloc[0, 0]) + " day and status in (2,3)")
         df_raw = pd.read_sql("select * from careers where originalpostingdate >= current_date - INTERVAL '" +
-                             str(train_days.iloc[0, 0]) + " day'", conn)
+                             str(train_days.iloc[0, 0]) + " day' and status in (2,3)", conn)
 
     #df_main = df_raw.head(1000)
     df_main = df_raw.copy()
@@ -394,8 +394,8 @@ def train():
     df_main = df_main[df_main["avgsalary"] > 1500]
     df_main.fillna(value='', inplace=True)
     print(df_main.info())
-    df_main['skills'] = df_main['skills'].str.replace(' ', '_')
-    df_main['skills'] = df_main['skills'].str.replace('|', ' ')
+    df_main['categories'] = df_main['categories'].str.replace(' ', '_')
+    df_main['categories'] = df_main['categories'].str.replace('|', ' ')
 
     #x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, df_main.columns != 'avgsalary'], df_main["avgsalary"], test_size = 0.2, random_state = 2021)
     x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, ~(df_main.columns.isin(
@@ -403,19 +403,18 @@ def train():
 
     # Word vectorizer
     # min_df = 0.01, max_df = 0.5, stop_words = 'english'
-    count_vectorizer = feature_extraction.text.CountVectorizer(
-        min_df=0.01, max_df=0.5, stop_words='english')
+    count_vectorizer = feature_extraction.text.CountVectorizer()
     # fit dont put fit into test - fit mean you want to fix the module
-    x_train_skills = count_vectorizer.fit_transform(x_train["skills"])
-    x_test_skills = count_vectorizer.transform(x_test["skills"])
-    x_test_skills_df = pd.DataFrame(
-        x_test_skills.todense(), columns=count_vectorizer.get_feature_names())
-    x_train_skills_df = pd.DataFrame(
-        x_train_skills.todense(), columns=count_vectorizer.get_feature_names())
+    x_train_categories = count_vectorizer.fit_transform(x_train["categories"])
+    x_test_categories = count_vectorizer.transform(x_test["categories"])
+    x_test_categories_df = pd.DataFrame(
+        x_test_categories.todense(), columns=count_vectorizer.get_feature_names())
+    x_train_categories_df = pd.DataFrame(
+        x_train_categories.todense(), columns=count_vectorizer.get_feature_names())
 
-    x_train = pd.concat([x_train_skills_df, x_train[['minimumyearsexperience',
+    x_train = pd.concat([x_train_categories_df, x_train[['minimumyearsexperience',
                         'numberofvacancies', 'positionlevels', 'categories']].reset_index(drop=True), ], axis=1)
-    x_test = pd.concat([x_test_skills_df, x_test[['minimumyearsexperience', 'numberofvacancies',
+    x_test = pd.concat([x_test_categories_df, x_test[['minimumyearsexperience', 'numberofvacancies',
                        'positionlevels', 'categories']].reset_index(drop=True), ], axis=1)
 
     # Prepare HotEncoder - To change categorical into 1,0
@@ -432,9 +431,9 @@ def train():
         x_train_one_hot_data, columns=feature_name)
     x_test_one_hot_data_df = pd.DataFrame(
         x_test_one_hot_data, columns=feature_name)
-    x_train = pd.concat([x_train_skills_df, x_train_one_hot_data_df, x_train[[
+    x_train = pd.concat([x_train_categories_df, x_train_one_hot_data_df, x_train[[
                         'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
-    x_test = pd.concat([x_test_skills_df, x_test_one_hot_data_df, x_test[[
+    x_test = pd.concat([x_test_categories_df, x_test_one_hot_data_df, x_test[[
                        'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
     print(x_train.shape)
     type(x_train)
@@ -557,9 +556,9 @@ def predict():
     count_vectorizer = pickle.load(f_vect)
 
     # Word Vectorizer
-    x_test_skills = count_vectorizer.transform(x_test["skills"])
-    x_test_skills_df = pd.DataFrame(
-        x_test_skills.todense(), columns=count_vectorizer.get_feature_names())
+    x_test_categories = count_vectorizer.transform(x_test["categories"])
+    x_test_categories_df = pd.DataFrame(
+        x_test_categories.todense(), columns=count_vectorizer.get_feature_names())
 
     # This are column that are categorical
     categorical = ['positionlevels']
@@ -569,7 +568,7 @@ def predict():
     x_test_one_hot_data_df = pd.DataFrame(
         x_test_one_hot_data, columns=feature_name)
 
-    x_test = pd.concat([x_test_skills_df, x_test_one_hot_data_df, x_test[[
+    x_test = pd.concat([x_test_categories_df, x_test_one_hot_data_df, x_test[[
                        'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
 
     y_pred_test_nn_min = model_min.predict(x_test)
@@ -614,6 +613,6 @@ def updateData():
 
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=8080, debug=True)
+    app.run(host='127.0.0.1', port=8080, debug=False)
 
 # ASCII ART FROM: https://patorjk.com/software/taag/#p=display&f=Small&t=HALF%20CRAWL
