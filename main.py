@@ -387,7 +387,7 @@ def train():
         df_raw = pd.read_sql("select * from careers where originalpostingdate >= current_date - INTERVAL '" +
                              str(train_days.iloc[0, 0]) + " day' and status in (2,3)", conn)
 
-    #df_main = df_raw.head(1000)
+    # df_main = df_raw.head(1000)
     df_main = df_raw.copy()
     df_main = df_main[df_main["avgsalary"] < 15000]
     df_main = df_main[df_main["minimumyearsexperience"] <= 30]
@@ -397,7 +397,7 @@ def train():
     df_main['categories'] = df_main['categories'].str.replace(' ', '_')
     df_main['categories'] = df_main['categories'].str.replace('|', ' ')
 
-    #x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, df_main.columns != 'avgsalary'], df_main["avgsalary"], test_size = 0.2, random_state = 2021)
+    # x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, df_main.columns != 'avgsalary'], df_main["avgsalary"], test_size = 0.2, random_state = 2021)
     x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, ~(df_main.columns.isin(
         ['avgsalary', 'minsalary', 'maxsalary']))], df_main[["minsalary", "maxsalary"]], test_size=0.2, random_state=2021)
 
@@ -447,11 +447,11 @@ def train():
     nn.add(Dropout(0.2))
     nn.add(Dense(10, activation='relu'))
     nn.add(Dropout(0.2))
-    #nn.add(layers.Dense(1, activation=''))
+    # nn.add(layers.Dense(1, activation=''))
     nn.add(Dense(1, kernel_initializer='normal'))
     # Compile model
     nn.compile(loss='mean_squared_error', optimizer='adam')
-    #nn.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    # nn.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     print(x_test.shape)
 
@@ -579,16 +579,29 @@ def predict():
 
 @app.route("/stats")
 def stats():
-    rsquarevalue = [{"name": str(
-        x+1)+" Jun 2022",  "R Square Value":  random.randint(80, 100)} for x in range(8)]
-    RSME = [{"name": str(
-        x+1)+" Jun 2022",  "RSME":  random.randint(800, 1000)/1000} for x in range(8)]
-    newjob = [{"name": str(
-        x+1)+" Jun 2022",  "New Job":  random.randint(140, 200)} for x in range(8)]
-    return Response(json.dumps({"rsquarevalue": rsquarevalue, "RSME": RSME, "newjob": newjob}), 200, mimetype='application/json')
+    # with db.connect() as conn:
+    #     x_test = pd.read_sql("select * from model", conn)
+    # rsquarevalue = [{"name": str(
+    #     x+1)+" Jun 2022",  "Max R² Square Value":  random.randint(80, 100), "Min R² Square Value":  random.randint(80, 100)} for x in range(8)]
+    # RMSE = [{"name": str(
+    #     x+1)+" Jun 2022",  "Max RMSE":  random.randint(800, 1000)/1000}, "Min RMSE":  random.randint(800, 1000)/1000} for x in range(8)]
+    # newjob = [{"name": str(
+    #     x+1)+" Jun 2022",  "New Job":  random.randint(140, 200)} for x in range(8)]
+    with db.connect() as conn:
+        stats = pd.read_sql(
+            "select to_char(\"createdDate\", 'DD Mon YY, HH24:MI')  as day, min_rmse, min_rsquare, max_rmse, max_rsquare from model order by 1 limit 5", conn)
+        rsquarevalue = [{"name": str(x), "Min R² Square Value":  round(y, 3), "Max R² Square Value": round(z, 3)}
+                        for x, y, z in zip(stats["day"], stats["min_rsquare"], stats["max_rsquare"])]
+        RMSE = [{"name": str(x), "Min RMSE":  round(y, 2), "Max RMSE": round(z, 2)}
+                for x, y, z in zip(stats["day"], stats["min_rmse"], stats["max_rmse"])]
+        stats = pd.read_sql(
+            "select Date(crawldate) as day, count(*) as count from careers group by DATE(crawldate) order by 1 limit 5;", conn)
+        newjob = [{"name": str(x), "New Job":  round(y, 2)}
+                  for x, y in zip(stats["day"], stats["count"])]
+    return Response(json.dumps({"rsquarevalue": rsquarevalue, "RMSE": RMSE, "newjob": newjob}), 200, mimetype='application/json')
 
 
-@app.route("/outlier")
+@ app.route("/outlier")
 def data():
     df = pd.read_sql(
         "select uuid, title, left(description,50) as description, skills, numberofvacancies, categories, positionlevels, postedcompany,employmenttypes, minsalary, maxsalary , remarks from careers where status = 1", db.connect())
@@ -597,7 +610,7 @@ def data():
                                ), 200,  mimetype='application/json')
 
 
-@app.route('/outlier', methods=['PUT'])
+@ app.route('/outlier', methods=['PUT'])
 def updateData():
     print(request.get_json()['action'])
     print(str(request.get_json()['payload'])[1:-1])
