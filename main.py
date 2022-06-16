@@ -30,6 +30,7 @@ import keras
 import pickle
 from numpy.random import seed
 import tensorflow as tf
+import base64
 
 #   ___ _  _ ___ _____ ___   _   _    ___ ___ ___ _  _  ___
 #  |_ _| \| |_ _|_   _|_ _| /_\ | |  |_ _/ __|_ _| \| |/ __|
@@ -40,7 +41,7 @@ app = Flask(__name__)
 CORS(app)
 logger = logging.getLogger()
 
-#  ___ _   _ _  _  ___ _____ ___ ___  _  _
+#   ___ _   _ _  _  ___ _____ ___ ___  _  _
 #  | __| | | | \| |/ __|_   _|_ _/ _ \| \| |
 #  | _|| |_| | .` | (__  | |  | | (_) | .` |
 #  |_|  \___/|_|\_|\___| |_| |___\___/|_|\_|
@@ -456,8 +457,7 @@ def train():
     print(x_test.shape)
 
     # minsalary model
-    history_min = nn.fit(
-        x_train, y_train['minsalary'], epochs=20, batch_size=100, verbose=2)
+    nn.fit(x_train, y_train['minsalary'], epochs=20, batch_size=100, verbose=2)
     y_pred_test_nn_min = nn.predict(x_test)
 
     min_MSE = mean_squared_error(y_test['minsalary'], y_pred_test_nn_min)
@@ -471,7 +471,9 @@ def train():
     print('Min salary RMSE: ' + str(min_RMSE))
     print('Min salary R2:' + str(min_R2))
     print('Min salary Adjusted R2: ' + str(min_adj_R2))
-    nn.save("model_min")
+    nn.save("model_min.h5")
+    with open("model_min.h5", "rb") as image_file:
+        model_min = base64.b64encode(image_file.read())
     # maxsalary model
     history_max = nn.fit(
         x_train, y_train['maxsalary'], epochs=20, batch_size=100, verbose=2)
@@ -490,29 +492,31 @@ def train():
     print('Max salary Adjusted R2: ' + str(max_adj_R2))
 
     # Save Model
-    nn.save("model_max")
-
+    nn.save("model_max.h5")
+    with open("model_max.h5", "rb") as image_file:
+        model_max = base64.b64encode(image_file.read())
     # Save One-Hot-Encoder
     with open("encoder.pickle", "wb") as f:
         pickle.dump(enc, f)
-
+    with open("encoder.pickle", "rb") as image_file:
+        encoder = base64.b64encode(image_file.read())
     # Save Count Vectorizer
     with open("count_vectorizer.pickle", "wb") as f:
         pickle.dump(count_vectorizer, f)
+    with open("count_vectorizer.pickle", "rb") as image_file:
+        countvectorizer = base64.b64encode(image_file.read())
 
     # Save Result in Model DB
     with db.connect() as conn:
         db_row = conn.execute(
             "select count(*) from model")
 
-        if db_row == 0:
-            conn.execute(
-                "insert into model values (default, 'NN', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1)")
-        else:
+        if db_row != 0:
             conn.execute(
                 "update model set selected = 0 where id = (select max(id) from model)")
-            conn.execute(
-                "insert into model values (default, 'NN', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1)")
+
+        conn.execute(
+            "insert into model values (default, 'NN', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1,"+str(model_min)[1:]+","+str(model_max)[1:]+","+str(encoder)[1:]+","+str(countvectorizer)[1:]+")")
 
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
@@ -542,11 +546,38 @@ def predict():
     # with db.connect() as conn:
     #     x_test = pd.read_sql(
     #         "select * from careers where uuid='92608a6f62190f2425c5259206728352'", conn)
-    if not (os.path.exists("encoder.pickle") and os.path.exists("count_vectorizer.pickle") and os.path.exists("model_min") and os.path.exists("model_max")):
-        return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
+    # if not (os.path.exists("encoder.pickle") and os.path.exists("count_vectorizer.pickle") and os.path.exists("model_min.h5") and os.path.exists("model_max.h5")):
+    #     return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
+    with db.connect() as conn:
+        stats = pd.read_sql(
+            "select minmodel,maxmodel,enc,countvectorizer from model where selected = 1", conn)
+    try:
+        with open("model_min.h5", "wb") as f:
+            f.write(base64.decodebytes(
+                bytes(stats.iloc[0, 0], encoding='utf-8')))
+    except Exception as e:
+        print(str(e))
+    try:
+        with open("model_max.h5", "wb") as f:
+            f.write(base64.decodebytes(
+                bytes(stats.iloc[0, 1], encoding='utf-8')))
+    except Exception as e:
+        print(str(e))
+    try:
+        with open("encoder.pickle", "wb") as f:
+            f.write(base64.decodebytes(
+                bytes(stats.iloc[0, 2], encoding='utf-8')))
+    except Exception as e:
+        print(str(e))
+    try:
+        with open("count_vectorizer.pickle", "wb") as f:
+            f.write(base64.decodebytes(
+                bytes(stats.iloc[0, 3], encoding='utf-8')))
+    except Exception as e:
+        print(str(e))
 
-    model_min = keras.models.load_model("model_min")
-    model_max = keras.models.load_model("model_max")
+    model_min = keras.models.load_model("model_min.h5")
+    model_max = keras.models.load_model("model_max.h5")
 
     # Load one hot encoder
     f_enc = open("encoder.pickle", "rb")
