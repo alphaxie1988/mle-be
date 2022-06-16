@@ -589,15 +589,15 @@ def stats():
     #     x+1)+" Jun 2022",  "New Job":  random.randint(140, 200)} for x in range(8)]
     with db.connect() as conn:
         stats = pd.read_sql(
-            "select to_char(\"createdDate\", 'DD Mon YY, HH24:MI')  as day, min_rmse, min_rsquare, max_rmse, max_rsquare from model order by 1 limit 5", conn)
+            "select to_char(\"createdDate\", 'DD Mon YY, HH24:MI')  as day, min_rmse, min_rsquare, max_rmse, max_rsquare from model order by 1 desc limit 5", conn)
         rsquarevalue = [{"name": str(x), "Min R² Square Value":  round(y, 3), "Max R² Square Value": round(z, 3)}
-                        for x, y, z in zip(stats["day"], stats["min_rsquare"], stats["max_rsquare"])]
+                        for x, y, z in zip(stats["day"][::-1], stats["min_rsquare"][::-1], stats["max_rsquare"][::-1])]
         RMSE = [{"name": str(x), "Min RMSE":  round(y, 2), "Max RMSE": round(z, 2)}
-                for x, y, z in zip(stats["day"], stats["min_rmse"], stats["max_rmse"])]
+                for x, y, z in zip(stats["day"][::-1], stats["min_rmse"][::-1], stats["max_rmse"][::-1])]
         stats = pd.read_sql(
-            "select Date(crawldate) as day, count(*) as count from careers group by DATE(crawldate) order by 1 limit 5;", conn)
+            "select Date(crawldate) as day, count(*) as count from careers group by DATE(crawldate) order by 1 desc limit 5;", conn)
         newjob = [{"name": str(x), "New Job":  round(y, 2)}
-                  for x, y in zip(stats["day"], stats["count"])]
+                  for x, y in zip(stats["day"][::-1], stats["count"][::-1])]
     return Response(json.dumps({"rsquarevalue": rsquarevalue, "RMSE": RMSE, "newjob": newjob}), 200, mimetype='application/json')
 
 
