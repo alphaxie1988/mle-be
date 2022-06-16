@@ -397,6 +397,12 @@ def train():
     print(df_main.info())
     df_main['categories'] = df_main['categories'].str.replace(' ', '_')
     df_main['categories'] = df_main['categories'].str.replace('|', ' ')
+    df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(
+        ' ', '_')
+    df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(
+        '|', ' ')
+    df_main['new_col'] = df_main[['categories', 'employmenttypes']].apply(
+        lambda x: '|'.join(x.dropna().values.tolist()), axis=1)
 
     # x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, df_main.columns != 'avgsalary'], df_main["avgsalary"], test_size = 0.2, random_state = 2021)
     x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, ~(df_main.columns.isin(
@@ -406,17 +412,17 @@ def train():
     # min_df = 0.01, max_df = 0.5, stop_words = 'english'
     count_vectorizer = feature_extraction.text.CountVectorizer()
     # fit dont put fit into test - fit mean you want to fix the module
-    x_train_categories = count_vectorizer.fit_transform(x_train["categories"])
-    x_test_categories = count_vectorizer.transform(x_test["categories"])
+    x_train_categories = count_vectorizer.fit_transform(x_train["new_col"])
+    x_test_categories = count_vectorizer.transform(x_test["new_col"])
     x_test_categories_df = pd.DataFrame(
         x_test_categories.todense(), columns=count_vectorizer.get_feature_names())
     x_train_categories_df = pd.DataFrame(
         x_train_categories.todense(), columns=count_vectorizer.get_feature_names())
 
     x_train = pd.concat([x_train_categories_df, x_train[['minimumyearsexperience',
-                        'numberofvacancies', 'positionlevels', 'categories']].reset_index(drop=True), ], axis=1)
+                        'numberofvacancies', 'positionlevels']].reset_index(drop=True), ], axis=1)
     x_test = pd.concat([x_test_categories_df, x_test[['minimumyearsexperience', 'numberofvacancies',
-                       'positionlevels', 'categories']].reset_index(drop=True), ], axis=1)
+                       'positionlevels']].reset_index(drop=True), ], axis=1)
 
     # Prepare HotEncoder - To change categorical into 1,0
     enc = OneHotEncoder(handle_unknown='ignore')
@@ -532,13 +538,14 @@ def predict():
     # return model.predict(job)
     print(request.get_json())
     # Dummy Data
-    data = {'skills': "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobSkills']]),
-            'categories':  "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobCategory']]),
-            'positionlevels':  "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobPositionLevels']]),
-            'employmenttypes':  "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobType']]),
-            'minimumyearsexperience': int(request.get_json()['minimumYOE']),
-            'numberofvacancies': request.get_json()['numberofvacancies'],
-            }
+    # 'skills': "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobSkills']]),
+    data = {
+        'categories':  "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobCategory']])+"|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobType']]),
+        'positionlevels':  "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobPositionLevels']]),
+        # 'employmenttypes':  "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobType']]),
+        'minimumyearsexperience': int(request.get_json()['minimumYOE']),
+        'numberofvacancies': int(request.get_json()['numberofvacancies']),
+    }
     print(data)
 
     x_test = pd.DataFrame(data, index=[0])
