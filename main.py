@@ -553,50 +553,8 @@ def predict():
     # with db.connect() as conn:
     #     x_test = pd.read_sql(
     #         "select * from careers where uuid='92608a6f62190f2425c5259206728352'", conn)
-    # if not (os.path.exists("encoder.pickle") and os.path.exists("count_vectorizer.pickle") and os.path.exists("model_min.h5") and os.path.exists("model_max.h5")):
-    #     return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
-    with db.connect() as conn:
-        stats = pd.read_sql(
-            "select minmodel,maxmodel,enc,countvectorizer from model where selected = 1", conn)
-    try:
-        with open("model_min.h5", "wb") as f:
-            f.write(base64.decodebytes(
-                bytes(stats.iloc[0, 0], encoding='utf-8')))
-    except Exception as e:
-        print(str(e))
+    if not (os.path.exists("encoder.pickle") and os.path.exists("count_vectorizer.pickle") and os.path.exists("model_min.h5") and os.path.exists("model_max.h5")):
         return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
-    try:
-        with open("model_max.h5", "wb") as f:
-            f.write(base64.decodebytes(
-                bytes(stats.iloc[0, 1], encoding='utf-8')))
-    except Exception as e:
-        print(str(e))
-        return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
-    try:
-        with open("encoder.pickle", "wb") as f:
-            f.write(base64.decodebytes(
-                bytes(stats.iloc[0, 2], encoding='utf-8')))
-    except Exception as e:
-        print(str(e))
-        return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
-
-    try:
-        with open("count_vectorizer.pickle", "wb") as f:
-            f.write(base64.decodebytes(
-                bytes(stats.iloc[0, 3], encoding='utf-8')))
-    except Exception as e:
-        print(str(e))
-        return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
-
-    model_min = keras.models.load_model("model_min.h5")
-    model_max = keras.models.load_model("model_max.h5")
-
-    # Load one hot encoder
-    f_enc = open("encoder.pickle", "rb")
-    enc = pickle.load(f_enc)
-
-    f_vect = open("count_vectorizer.pickle", "rb")
-    count_vectorizer = pickle.load(f_vect)
 
     # Word Vectorizer
     x_test_categories = count_vectorizer.transform(x_test["categories"])
@@ -667,6 +625,48 @@ def updateData():
                 "update careers set status = 4, remarks=Concat(remarks,'Admin marked as not OK|') where uuid in ("+str(request.get_json()['payload'])[1:-1]+")")
     return Response(json.dumps({"success": True}), 200,  mimetype='application/json')
 
+
+with db.connect() as conn:
+    stats = pd.read_sql(
+        "select minmodel,maxmodel,enc,countvectorizer from model where selected = 1", conn)
+try:
+    with open("model_min.h5", "wb") as f:
+        f.write(base64.decodebytes(
+            bytes(stats.iloc[0, 0], encoding='utf-8')))
+except Exception as e:
+    print(str(e))
+try:
+    with open("model_max.h5", "wb") as f:
+        f.write(base64.decodebytes(
+            bytes(stats.iloc[0, 1], encoding='utf-8')))
+except Exception as e:
+    print(str(e))
+try:
+    with open("encoder.pickle", "wb") as f:
+        f.write(base64.decodebytes(
+            bytes(stats.iloc[0, 2], encoding='utf-8')))
+except Exception as e:
+    print(str(e))
+
+try:
+    with open("count_vectorizer.pickle", "wb") as f:
+        f.write(base64.decodebytes(
+            bytes(stats.iloc[0, 3], encoding='utf-8')))
+except Exception as e:
+    print(str(e))
+
+try:
+    model_min = keras.models.load_model("model_min.h5")
+    model_max = keras.models.load_model("model_max.h5")
+
+    # Load one hot encoder
+    f_enc = open("encoder.pickle", "rb")
+    enc = pickle.load(f_enc)
+
+    f_vect = open("count_vectorizer.pickle", "rb")
+    count_vectorizer = pickle.load(f_vect)
+except Exception as e:
+    print(str(e))
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=False)
