@@ -204,7 +204,7 @@ def crawl():
     if (isCrawling):
         return f"Already Crawling, please wait!"
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Started%20at%20"+str(datetime.now())[0:-7])
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=__"+str(datetime.now())[0:-7]+"__%0A1.%20Crawl%20Started")
 
     # Start to Crawl Code Here
     print("Start to Crawl")
@@ -319,7 +319,7 @@ def crawl():
         numberOfJobAfter = int(conn.execute(
             "SELECT count(*) FROM careers").fetchone()[0])
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Crawl%20Ended%20at%20"+str(datetime.now())[0:-7]+"%0ANumber%20Of%20New%20Jobs:%20"+str(numberOfJobAfter-numberOfJobBefore))
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=__"+str(datetime.now())[0:-7]+"__%0A7.%20Crawl%20Ended%0ANumber%20Of%20New%20Jobs:%20"+str(numberOfJobAfter-numberOfJobBefore))
     # End of Crawl
     return f"Thank you for waiting!"
     # return Response(
@@ -330,7 +330,10 @@ def crawl():
 
 def clean():
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Cleaning%20Started%20at%20"+str(datetime.now())[0:-7])
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=__" +
+        str(datetime.now())[
+
+            0:-7]+"__%0A2.%20Crawl%20Ended%0A3.%20Cleaning%20Started")
     ########### Start Cleaning ############
     ######## Anna start here ###########
     # 1) read all data from careers table where column included is null
@@ -367,15 +370,12 @@ def clean():
     ######## Anna end here #########
     ########## End Cleaning ##############
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Cleaning%20Ended%20at%20"+str(datetime.now())[0:-7]+"%0ANumber%20Of%20Flagged:%20"+str(numberOfFlagedAfter-numberOfFlagedBefore))
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=__"+str(datetime.now())[0:-7]+"__%0A4.%20Cleaning%20Ended%0ANumber%20Of%20Flagged:%20"+str(numberOfFlagedAfter-numberOfFlagedBefore)+"%0A5.%20Training%20Started")
     train()
 
 
-@app.route("/train")
+@ app.route("/train")
 def train():
-    requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Started%20at%20"+str(datetime.now())[0:-7])
-    # time.sleep(15)
 
     seed(2021)
     tf.random.set_seed(2021)
@@ -390,11 +390,9 @@ def train():
 
     # df_main = df_raw.head(1000)
     df_main = df_raw.copy()
-    df_main = df_main[df_main["avgsalary"] < 15000]
-    df_main = df_main[df_main["minimumyearsexperience"] <= 30]
-    df_main = df_main[df_main["avgsalary"] > 1500]
+    df_main = df_main[df_main["minimumyearsexperience"] <= 25]
     df_main.fillna(value='', inplace=True)
-    print(df_main.info())
+    # print(df_main.info())
     df_main['categories'] = df_main['categories'].str.replace(' ', '_')
     df_main['categories'] = df_main['categories'].str.replace('|', ' ')
     df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(
@@ -412,17 +410,18 @@ def train():
     # min_df = 0.01, max_df = 0.5, stop_words = 'english'
     count_vectorizer = feature_extraction.text.CountVectorizer()
     # fit dont put fit into test - fit mean you want to fix the module
-    x_train_categories = count_vectorizer.fit_transform(x_train["new_col"])
-    x_test_categories = count_vectorizer.transform(x_test["new_col"])
-    x_test_categories_df = pd.DataFrame(
-        x_test_categories.todense(), columns=count_vectorizer.get_feature_names())
-    x_train_categories_df = pd.DataFrame(
-        x_train_categories.todense(), columns=count_vectorizer.get_feature_names())
+    x_train_categories_and_type = count_vectorizer.fit_transform(
+        x_train["new_col"])
+    x_test_categories_and_type = count_vectorizer.transform(x_test["new_col"])
+    x_test_categories_and_type_df = pd.DataFrame(
+        x_test_categories_and_type.todense(), columns=count_vectorizer.get_feature_names())
+    x_train_categories_and_type_df = pd.DataFrame(
+        x_train_categories_and_type.todense(), columns=count_vectorizer.get_feature_names())
 
-    x_train = pd.concat([x_train_categories_df, x_train[['minimumyearsexperience',
-                        'numberofvacancies', 'positionlevels']].reset_index(drop=True), ], axis=1)
-    x_test = pd.concat([x_test_categories_df, x_test[['minimumyearsexperience', 'numberofvacancies',
-                       'positionlevels']].reset_index(drop=True), ], axis=1)
+    x_train = pd.concat([x_train_categories_and_type_df, x_train[['minimumyearsexperience',
+                                                                  'numberofvacancies', 'positionlevels']].reset_index(drop=True), ], axis=1)
+    x_test = pd.concat([x_test_categories_and_type_df, x_test[['minimumyearsexperience', 'numberofvacancies',
+                                                               'positionlevels']].reset_index(drop=True), ], axis=1)
 
     # Prepare HotEncoder - To change categorical into 1,0
     enc = OneHotEncoder(handle_unknown='ignore')
@@ -438,10 +437,10 @@ def train():
         x_train_one_hot_data, columns=feature_name)
     x_test_one_hot_data_df = pd.DataFrame(
         x_test_one_hot_data, columns=feature_name)
-    x_train = pd.concat([x_train_categories_df, x_train_one_hot_data_df, x_train[[
-                        'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
-    x_test = pd.concat([x_test_categories_df, x_test_one_hot_data_df, x_test[[
-                       'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
+    x_train = pd.concat([x_train_categories_and_type_df, x_train_one_hot_data_df, x_train[[
+        'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
+    x_test = pd.concat([x_test_categories_and_type_df, x_test_one_hot_data_df, x_test[[
+        'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
     print(x_train.shape)
     type(x_train)
 
@@ -527,12 +526,12 @@ def train():
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=Training%20Ended%20at%20"+str(datetime.now())[0:-7])
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=__"+str(datetime.now())[0:-7]+"__%0A6.%20Training%20Ended%0AMin_RMSE:%20" + str(round(min_RMSE, 2))+"%0AMax_RMSE:%20" + str(round(max_RMSE, 2))+"%0AMin_R2:%20" + str(round(min_R2, 2))+"%0AMax_R2:%20" + str(round(max_R2, 2)))
 
     return 0
 
 
-@app.route("/predict", methods=['POST'])
+@ app.route("/predict", methods=['POST'])
 def predict():
     # model = pickle.load("gs://sadsaas/asd.model")
     # return model.predict(job)
@@ -557,9 +556,10 @@ def predict():
         return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
 
     # Word Vectorizer
-    x_test_categories = count_vectorizer.transform(x_test["categories"])
-    x_test_categories_df = pd.DataFrame(
-        x_test_categories.todense(), columns=count_vectorizer.get_feature_names())
+    x_test_categories_and_type = count_vectorizer.transform(
+        x_test["categories"])
+    x_test_categories_and_type_df = pd.DataFrame(
+        x_test_categories_and_type.todense(), columns=count_vectorizer.get_feature_names())
 
     # This are column that are categorical
     categorical = ['positionlevels']
@@ -569,8 +569,8 @@ def predict():
     x_test_one_hot_data_df = pd.DataFrame(
         x_test_one_hot_data, columns=feature_name)
 
-    x_test = pd.concat([x_test_categories_df, x_test_one_hot_data_df, x_test[[
-                       'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
+    x_test = pd.concat([x_test_categories_and_type_df, x_test_one_hot_data_df, x_test[[
+        'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
 
     y_pred_test_nn_min = model_min.predict(x_test)
     y_pred_test_nn_max = model_max.predict(x_test)
@@ -578,7 +578,7 @@ def predict():
     return Response(json.dumps({"pMinSal": int(y_pred_test_nn_min[0][0]), "pMaxSal": int(y_pred_test_nn_max[0][0])}),  mimetype='application/json')
 
 
-@app.route("/stats")
+@ app.route("/stats")
 def stats():
     # with db.connect() as conn:
     #     x_test = pd.read_sql("select * from model", conn)
