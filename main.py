@@ -557,24 +557,29 @@ def predict():
                 bytes(stats.iloc[0, 0], encoding='utf-8')))
     except Exception as e:
         print(str(e))
+        return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
     try:
         with open("model_max.h5", "wb") as f:
             f.write(base64.decodebytes(
                 bytes(stats.iloc[0, 1], encoding='utf-8')))
     except Exception as e:
         print(str(e))
+        return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
     try:
         with open("encoder.pickle", "wb") as f:
             f.write(base64.decodebytes(
                 bytes(stats.iloc[0, 2], encoding='utf-8')))
     except Exception as e:
         print(str(e))
+        return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
+
     try:
         with open("count_vectorizer.pickle", "wb") as f:
             f.write(base64.decodebytes(
                 bytes(stats.iloc[0, 3], encoding='utf-8')))
     except Exception as e:
         print(str(e))
+        return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
 
     model_min = keras.models.load_model("model_min.h5")
     model_max = keras.models.load_model("model_max.h5")
