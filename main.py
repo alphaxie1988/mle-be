@@ -3,13 +3,11 @@
 #   | || |\/| |  _/ (_) |   / | |
 #  |___|_|  |_|_|  \___/|_|_\ |_|
 
-import random
 import datetime
 import logging
 import os
-import time
 import requests
-from flask import Flask, render_template, request, Response
+from flask import Flask, request, Response
 import sqlalchemy
 import json
 from bs4 import BeautifulSoup
@@ -18,7 +16,6 @@ import pandas as pd
 import requests
 from flask_cors import CORS
 from dotenv import load_dotenv
-
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn import feature_extraction
@@ -36,6 +33,7 @@ import base64
 #  |_ _| \| |_ _|_   _|_ _| /_\ | |  |_ _/ __|_ _| \| |/ __|
 #   | || .` || |  | |  | | / _ \| |__ | |\__ \| || .` | (_ |
 #  |___|_|\_|___| |_| |___/_/ \_\____|___|___/___|_|\_|\___|
+
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
@@ -112,34 +110,6 @@ db = init_db_connection()
 
 @app.route('/', methods=['GET'])
 def index():
-    # votes = []
-    # with db.connect() as conn:
-    #     # Execute the query and fetch all results
-    #     recent_votes = conn.execute(
-    #         "SELECT * from mle"
-    #     ).fetchall()
-    #     # Convert the results into a list of dicts representing votes
-    #     for row in recent_votes:
-    #         votes.append({
-    #             'candidate': row[0],
-    #             'time_cast': row[1]
-    #         })
-
-    #     stmt = sqlalchemy.text(
-    #         "SELECT num_votes FROM totals WHERE candidate=:candidate")
-    #     # Count number of votes for tabs
-    #     tab_result = conn.execute(stmt, candidate="TABS").fetchone()
-    #     tab_count = tab_result[0] if tab_result is not None else 0
-    #     # Count number of votes for spaces
-    #     space_result = conn.execute(stmt, candidate="SPACES").fetchone()
-    #     space_count = space_result[0] if space_result is not None else 0
-
-    # return render_template(
-    #     'index.html',
-    #     recent_votes=votes,
-    #     tab_count=tab_count,
-    #     space_count=space_count
-    # )
     return Response(
         status=200,
         response="Up and Running: Student Project by SMU"
@@ -452,10 +422,10 @@ def train():
         'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
 
     print(x_train.shape)
-#   ___  ___ ___ ___ _  _ ___   __  __  ___  ___  ___ _
-#  |   \| __| __|_ _| \| | __| |  \/  |/ _ \|   \| __| |
-#  | |) | _|| _| | || .` | _|  | |\/| | (_) | |) | _|| |__
-#  |___/|___|_| |___|_|\_|___| |_|  |_|\___/|___/|___|____|
+            #   ___  ___ ___ ___ _  _ ___   __  __  ___  ___  ___ _
+            #  |   \| __| __|_ _| \| | __| |  \/  |/ _ \|   \| __| |
+            #  | |) | _|| _| | || .` | _|  | |\/| | (_) | |) | _|| |__
+            #  |___/|___|_| |___|_|\_|___| |_|  |_|\___/|___/|___|____|
 
     nn = Sequential()
     nn.add(Dense(78, input_dim=x_train.shape[1], activation='relu'))
@@ -473,10 +443,10 @@ def train():
 
     print(x_test.shape)
 
-#   __  __ ___ _  _   ___   _   _      _   _____   __  __  __  ___  ___  ___ _
-#  |  \/  |_ _| \| | / __| /_\ | |    /_\ | _ \ \ / / |  \/  |/ _ \|   \| __| |
-#  | |\/| || || .` | \__ \/ _ \| |__ / _ \|   /\ V /  | |\/| | (_) | |) | _|| |__
-#  |_|  |_|___|_|\_| |___/_/ \_\____/_/ \_\_|_\ |_|   |_|  |_|\___/|___/|___|____|
+            #   __  __ ___ _  _   ___   _   _      _   _____   __  __  __  ___  ___  ___ _
+            #  |  \/  |_ _| \| | / __| /_\ | |    /_\ | _ \ \ / / |  \/  |/ _ \|   \| __| |
+            #  | |\/| || || .` | \__ \/ _ \| |__ / _ \|   /\ V /  | |\/| | (_) | |) | _|| |__
+            #  |_|  |_|___|_|\_| |___/_/ \_\____/_/ \_\_|_\ |_|   |_|  |_|\___/|___/|___|____|
 
     nn.fit(x_train, y_train['minsalary'], epochs=20, batch_size=100, verbose=2)
     y_pred_test_nn_min = nn.predict(x_test)
@@ -499,10 +469,10 @@ def train():
         model_min = base64.b64encode(image_file.read())
 
 
-#   __  __   _   __  __  ___   _   _      _   _____   __  __  __  ___  ___  ___ _
-#  |  \/  | /_\  \ \/ / / __| /_\ | |    /_\ | _ \ \ / / |  \/  |/ _ \|   \| __| |
-#  | |\/| |/ _ \  >  <  \__ \/ _ \| |__ / _ \|   /\ V /  | |\/| | (_) | |) | _|| |__
-#  |_|  |_/_/ \_\/_/\_\ |___/_/ \_\____/_/ \_\_|_\ |_|   |_|  |_|\___/|___/|___|____|
+            #   __  __   _   __  __  ___   _   _      _   _____   __  __  __  ___  ___  ___ _
+            #  |  \/  | /_\  \ \/ / / __| /_\ | |    /_\ | _ \ \ / / |  \/  |/ _ \|   \| __| |
+            #  | |\/| |/ _ \  >  <  \__ \/ _ \| |__ / _ \|   /\ V /  | |\/| | (_) | |) | _|| |__
+            #  |_|  |_/_/ \_\/_/\_\ |___/_/ \_\____/_/ \_\_|_\ |_|   |_|  |_|\___/|___/|___|____|
 
     nn.fit(
         x_train, y_train['maxsalary'], epochs=20, batch_size=100, verbose=2)
@@ -520,10 +490,10 @@ def train():
     print('Max salary R-square:' + str(max_R2))
     print('Max salary Adjusted R2: ' + str(max_adj_R2))
 
-#   ___   ___   _____   __  __  ___  ___  ___ _
-#  / __| /_\ \ / / __| |  \/  |/ _ \|   \| __| |
-#  \__ \/ _ \ V /| _|  | |\/| | (_) | |) | _|| |__
-#  |___/_/ \_\_/ |___| |_|  |_|\___/|___/|___|____|
+            #   ___   ___   _____   __  __  ___  ___  ___ _
+            #  / __| /_\ \ / / __| |  \/  |/ _ \|   \| __| |
+            #  \__ \/ _ \ V /| _|  | |\/| | (_) | |) | _|| |__
+            #  |___/_/ \_\_/ |___| |_|  |_|\___/|___/|___|____|
 
     nn.save("model_max.h5")
     with open("model_max.h5", "rb") as image_file:
@@ -603,7 +573,7 @@ def predict():
     y_pred_test_nn_min = model_min.predict(x_test)
     y_pred_test_nn_max = model_max.predict(x_test)
 
-    return Response(json.dumps({"pMinSal": int(y_pred_test_nn_min[0][0]), "pMaxSal": int(y_pred_test_nn_max[0][0])}),  mimetype='application/json')
+    return Response(json.dumps({"pMinSal": int(y_pred_test_nn_min[0][0]), "pMaxSal": int(y_pred_test_nn_max[0][0])}), 200, mimetype='application/json')
 
 #   ___ _____ _ _____ ___ ___ _____ ___ ___
 #  / __|_   _/_\_   _|_ _/ __|_   _|_ _/ __|
@@ -680,9 +650,6 @@ def modellist():
 
 @ app.route('/model', methods=['PUT'])
 def chooseModel():
-    # print(request.get_json()['action'])
-    # print(str(request.get_json()['payload'])[1:-1])
-    print(request.get_json()['payload'])
     with db.connect() as conn:
         conn.execute(
             "update model set selected = 0")
@@ -740,13 +707,8 @@ def loadModel():
     try:
         model_min = keras.models.load_model("model_min.h5")
         model_max = keras.models.load_model("model_max.h5")
-
-        # Load one hot encoder
-        f_enc = open("encoder.pickle", "rb")
-        enc = pickle.load(f_enc)
-
-        f_vect = open("count_vectorizer.pickle", "rb")
-        count_vectorizer = pickle.load(f_vect)
+        enc = pickle.load(open("encoder.pickle", "rb"))
+        count_vectorizer = pickle.load(open("count_vectorizer.pickle", "rb"))
     except Exception as e:
         print(str(e))
 
