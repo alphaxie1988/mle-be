@@ -328,6 +328,11 @@ def crawl():
     # )
 
 
+#    ___ _    ___   _   _  _ ___ _  _  ___
+#   / __| |  | __| /_\ | \| |_ _| \| |/ __|
+#  | (__| |__| _| / _ \| .` || || .` | (_ |
+#   \___|____|___/_/ \_\_|\_|___|_|\_|\___|
+
 def clean():
     requests.get(
         "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=__" +
@@ -373,36 +378,40 @@ def clean():
         "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=__"+str(datetime.now())[0:-7]+"__%0A5.%20Cleaning%20Ended%0ANumber%20Of%20Flagged:%20"+str(numberOfFlagedAfter-numberOfFlagedBefore)+"%0A6.%20Training%20Started")
     train()
 
+#   _____ ___    _   ___ _  _ ___ _  _  ___
+#  |_   _| _ \  /_\ |_ _| \| |_ _| \| |/ __|
+#    | | |   / / _ \ | || .` || || .` | (_ |
+#    |_| |_|_\/_/ \_\___|_|\_|___|_|\_|\___|
 
-@ app.route("/train")
+
 def train():
 
+    # Set Random Seed
     seed(2021)
     tf.random.set_seed(2021)
 
     with db.connect() as conn:
         train_days = pd.read_sql(
-            "select value from mle where key = 'numOfDaysToTrain'", conn)
-        print("select * from careers where originalpostingdate >= current_date - INTERVAL '" +
-              str(train_days.iloc[0, 0]) + " day and status in (2,3)")
+            "select value from mle where key = 'numOfDaysToTrain'", conn).iloc[0, 0]
+        # Select data for training
         df_raw = pd.read_sql("select * from careers where originalpostingdate >= current_date - INTERVAL '" +
-                             str(train_days.iloc[0, 0]) + " day' and status in (2,3)", conn)
+                             str(train_days) + " day' and status in (2,3)", conn)
 
-    # df_main = df_raw.head(1000)
     df_main = df_raw.copy()
     df_main = df_main[df_main["minimumyearsexperience"] <= 25]
     df_main.fillna(value='', inplace=True)
-    # print(df_main.info())
+    # prepare column categories and employment for word vectorizer
     df_main['categories'] = df_main['categories'].str.replace(' ', '_')
     df_main['categories'] = df_main['categories'].str.replace('|', ' ')
     df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(
         ' ', '_')
     df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(
         '|', ' ')
+    # create a 'new col that is categories + employmenttype
     df_main['new_col'] = df_main[['categories', 'employmenttypes']].apply(
         lambda x: '|'.join(x.dropna().values.tolist()), axis=1)
 
-    # x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, df_main.columns != 'avgsalary'], df_main["avgsalary"], test_size = 0.2, random_state = 2021)
+    # Train Test Split
     x_train, x_test, y_train, y_test = model_selection.train_test_split(df_main.loc[:, ~(df_main.columns.isin(
         ['avgsalary', 'minsalary', 'maxsalary']))], df_main[["minsalary", "maxsalary"]], test_size=0.2, random_state=2021)
 
@@ -441,8 +450,12 @@ def train():
         'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
     x_test = pd.concat([x_test_categories_and_type_df, x_test_one_hot_data_df, x_test[[
         'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
+
     print(x_train.shape)
-    type(x_train)
+#   ___  ___ ___ ___ _  _ ___   __  __  ___  ___  ___ _
+#  |   \| __| __|_ _| \| | __| |  \/  |/ _ \|   \| __| |
+#  | |) | _|| _| | || .` | _|  | |\/| | (_) | |) | _|| |__
+#  |___/|___|_| |___|_|\_|___| |_|  |_|\___/|___/|___|____|
 
     nn = Sequential()
     nn.add(Dense(78, input_dim=x_train.shape[1], activation='relu'))
@@ -453,7 +466,6 @@ def train():
     nn.add(Dropout(0.2))
     nn.add(Dense(10, activation='relu'))
     nn.add(Dropout(0.2))
-    # nn.add(layers.Dense(1, activation=''))
     nn.add(Dense(1, kernel_initializer='normal'))
     # Compile model
     nn.compile(loss='mean_squared_error', optimizer='adam')
@@ -461,10 +473,14 @@ def train():
 
     print(x_test.shape)
 
-    # minsalary model
+#   __  __ ___ _  _   ___   _   _      _   _____   __  __  __  ___  ___  ___ _
+#  |  \/  |_ _| \| | / __| /_\ | |    /_\ | _ \ \ / / |  \/  |/ _ \|   \| __| |
+#  | |\/| || || .` | \__ \/ _ \| |__ / _ \|   /\ V /  | |\/| | (_) | |) | _|| |__
+#  |_|  |_|___|_|\_| |___/_/ \_\____/_/ \_\_|_\ |_|   |_|  |_|\___/|___/|___|____|
+
     nn.fit(x_train, y_train['minsalary'], epochs=20, batch_size=100, verbose=2)
     y_pred_test_nn_min = nn.predict(x_test)
-
+    # Evaluation
     min_MSE = mean_squared_error(y_test['minsalary'], y_pred_test_nn_min)
     min_RMSE = mean_squared_error(
         y_test['minsalary'], y_pred_test_nn_min, squared=False)
@@ -476,11 +492,19 @@ def train():
     print('Min salary RMSE: ' + str(min_RMSE))
     print('Min salary R2:' + str(min_R2))
     print('Min salary Adjusted R2: ' + str(min_adj_R2))
+
+    # Save Model
     nn.save("model_min.h5")
     with open("model_min.h5", "rb") as image_file:
         model_min = base64.b64encode(image_file.read())
-    # maxsalary model
-    history_max = nn.fit(
+
+
+#   __  __   _   __  __  ___   _   _      _   _____   __  __  __  ___  ___  ___ _
+#  |  \/  | /_\  \ \/ / / __| /_\ | |    /_\ | _ \ \ / / |  \/  |/ _ \|   \| __| |
+#  | |\/| |/ _ \  >  <  \__ \/ _ \| |__ / _ \|   /\ V /  | |\/| | (_) | |) | _|| |__
+#  |_|  |_/_/ \_\/_/\_\ |___/_/ \_\____/_/ \_\_|_\ |_|   |_|  |_|\___/|___/|___|____|
+
+    nn.fit(
         x_train, y_train['maxsalary'], epochs=20, batch_size=100, verbose=2)
     y_pred_test_nn_max = nn.predict(x_test)
 
@@ -496,7 +520,11 @@ def train():
     print('Max salary R-square:' + str(max_R2))
     print('Max salary Adjusted R2: ' + str(max_adj_R2))
 
-    # Save Model
+#   ___   ___   _____   __  __  ___  ___  ___ _
+#  / __| /_\ \ / / __| |  \/  |/ _ \|   \| __| |
+#  \__ \/ _ \ V /| _|  | |\/| | (_) | |) | _|| |__
+#  |___/_/ \_\_/ |___| |_|  |_|\___/|___/|___|____|
+
     nn.save("model_max.h5")
     with open("model_max.h5", "rb") as image_file:
         model_max = base64.b64encode(image_file.read())
@@ -526,9 +554,12 @@ def train():
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
     requests.get(
-        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=__"+str(datetime.now())[0:-7]+"__%0A7.%20Training%20Ended%0AMin_RMSE:%20" + str(round(min_RMSE, 2))+"%0AMax_RMSE:%20" + str(round(max_RMSE, 2))+"%0AMin_R2:%20" + str(round(min_R2, 2))+"%0AMax_R2:%20" + str(round(max_R2, 2)))
+        "https://us-central1-fine-climber-348413.cloudfunctions.net/sendmessage?message=__"+str(datetime.now())[0:-7]+"__%0A7.%20Training%20Ended%0AMin_RMSE:%20" + str(round(min_RMSE, 3))+"%0AMax_RMSE:%20" + str(round(max_RMSE, 3))+"%0AMin_R2:%20" + str(round(min_R2, 3))+"%0AMax_R2:%20" + str(round(max_R2, 3)))
 
-    return 0
+#   ___ ___ ___ ___ ___ ___ _____
+#  | _ \ _ \ __|   \_ _/ __|_   _|
+#  |  _/   / _|| |) | | (__  | |
+#  |_| |_|_\___|___/___\___| |_|
 
 
 @ app.route("/predict", methods=['POST'])
@@ -549,9 +580,6 @@ def predict():
 
     x_test = pd.DataFrame(data, index=[0])
 
-    # with db.connect() as conn:
-    #     x_test = pd.read_sql(
-    #         "select * from careers where uuid='92608a6f62190f2425c5259206728352'", conn)
     if not (os.path.exists("encoder.pickle") and os.path.exists("count_vectorizer.pickle") and os.path.exists("model_min.h5") and os.path.exists("model_max.h5")):
         return Response(json.dumps({"pMinSal": 0, "pMaxSal": 0}),  mimetype='application/json')
 
@@ -570,12 +598,17 @@ def predict():
         x_test_one_hot_data, columns=feature_name)
 
     x_test = pd.concat([x_test_categories_and_type_df, x_test_one_hot_data_df, x_test[[
-        'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
+                       'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
 
     y_pred_test_nn_min = model_min.predict(x_test)
     y_pred_test_nn_max = model_max.predict(x_test)
 
     return Response(json.dumps({"pMinSal": int(y_pred_test_nn_min[0][0]), "pMaxSal": int(y_pred_test_nn_max[0][0])}),  mimetype='application/json')
+
+#   ___ _____ _ _____ ___ ___ _____ ___ ___
+#  / __|_   _/_\_   _|_ _/ __|_   _|_ _/ __|
+#  \__ \ | |/ _ \| |  | |\__ \ | |  | | (__
+#  |___/ |_/_/ \_\_| |___|___/ |_| |___\___|
 
 
 @ app.route("/stats")
@@ -602,6 +635,11 @@ def stats():
     return Response(json.dumps({"rsquarevalue": rsquarevalue, "RMSE": RMSE, "newjob": newjob}), 200, mimetype='application/json')
 
 
+#    ___  _   _ _____ _    ___ ___ ___
+#   / _ \| | | |_   _| |  |_ _| __| _ \
+#  | (_) | |_| | | | | |__ | || _||   /
+#   \___/ \___/  |_| |____|___|___|_|_\
+
 @ app.route("/outlier")
 def data():
     df = pd.read_sql(
@@ -613,8 +651,8 @@ def data():
 
 @ app.route('/outlier', methods=['PUT'])
 def updateData():
-    print(request.get_json()['action'])
-    print(str(request.get_json()['payload'])[1:-1])
+    # print(request.get_json()['action'])
+    # print(str(request.get_json()['payload'])[1:-1])
     if request.get_json()['action'] == "Add":
         with db.connect() as conn:
             conn.execute(
@@ -625,48 +663,100 @@ def updateData():
                 "update careers set status = 4, remarks=Concat(remarks,'Admin marked as not OK|') where uuid in ("+str(request.get_json()['payload'])[1:-1]+")")
     return Response(json.dumps({"success": True}), 200,  mimetype='application/json')
 
+#   __  __  ___  ___  ___ _
+#  |  \/  |/ _ \|   \| __| |
+#  | |\/| | (_) | |) | _|| |__
+#  |_|  |_|\___/|___/|___|____|
 
-with db.connect() as conn:
-    stats = pd.read_sql(
-        "select minmodel,maxmodel,enc,countvectorizer from model where selected = 1", conn)
-try:
-    with open("model_min.h5", "wb") as f:
-        f.write(base64.decodebytes(
-            bytes(stats.iloc[0, 0], encoding='utf-8')))
-except Exception as e:
-    print(str(e))
-try:
-    with open("model_max.h5", "wb") as f:
-        f.write(base64.decodebytes(
-            bytes(stats.iloc[0, 1], encoding='utf-8')))
-except Exception as e:
-    print(str(e))
-try:
-    with open("encoder.pickle", "wb") as f:
-        f.write(base64.decodebytes(
-            bytes(stats.iloc[0, 2], encoding='utf-8')))
-except Exception as e:
-    print(str(e))
 
-try:
-    with open("count_vectorizer.pickle", "wb") as f:
-        f.write(base64.decodebytes(
-            bytes(stats.iloc[0, 3], encoding='utf-8')))
-except Exception as e:
-    print(str(e))
+@ app.route("/model")
+def modellist():
+    df = pd.read_sql(
+        "select id,\"createdDate\", min_rmse, min_adjrsquare, min_rsquare, max_rmse, max_adjrsquare, max_rsquare, selected FROM public.model order by 1 desc limit 5", db.connect())
 
-try:
-    model_min = keras.models.load_model("model_min.h5")
-    model_max = keras.models.load_model("model_max.h5")
+    return Response(json.dumps([{v: str(x[k]) for (k, v) in enumerate(df)}for x in df.values]
+                               ), 200,  mimetype='application/json')
 
-    # Load one hot encoder
-    f_enc = open("encoder.pickle", "rb")
-    enc = pickle.load(f_enc)
 
-    f_vect = open("count_vectorizer.pickle", "rb")
-    count_vectorizer = pickle.load(f_vect)
-except Exception as e:
-    print(str(e))
+@ app.route('/model', methods=['PUT'])
+def chooseModel():
+    # print(request.get_json()['action'])
+    # print(str(request.get_json()['payload'])[1:-1])
+    print(request.get_json()['payload'])
+    with db.connect() as conn:
+        conn.execute(
+            "update model set selected = 0")
+        conn.execute(
+            "update model set selected = 1 where id in ("+str(request.get_json()['payload'])+")")
+    loadModel()
+    return Response(json.dumps({"success": True}), 200,  mimetype='application/json')
+
+#   ___ ___ ___ _    ___   _   ___    __  __  ___  ___  ___ _
+#  | _ \ _ \ __| |  / _ \ /_\ |   \  |  \/  |/ _ \|   \| __| |
+#  |  _/   / _|| |_| (_) / _ \| |) | | |\/| | (_) | |) | _|| |__
+#  |_| |_|_\___|____\___/_/ \_\___/  |_|  |_|\___/|___/|___|____|
+
+
+global model_min
+global model_max
+global count_vectorizer
+global enc
+
+
+def loadModel():
+    global model_min
+    global model_max
+    global count_vectorizer
+    global enc
+    with db.connect() as conn:
+        stats = pd.read_sql(
+            "select minmodel,maxmodel,enc,countvectorizer from model where selected = 1", conn)
+    try:
+        with open("model_min.h5", "wb") as f:
+            f.write(base64.decodebytes(
+                bytes(stats.iloc[0, 0], encoding='utf-8')))
+    except Exception as e:
+        print(str(e))
+    try:
+        with open("model_max.h5", "wb") as f:
+            f.write(base64.decodebytes(
+                bytes(stats.iloc[0, 1], encoding='utf-8')))
+    except Exception as e:
+        print(str(e))
+    try:
+        with open("encoder.pickle", "wb") as f:
+            f.write(base64.decodebytes(
+                bytes(stats.iloc[0, 2], encoding='utf-8')))
+    except Exception as e:
+        print(str(e))
+
+    try:
+        with open("count_vectorizer.pickle", "wb") as f:
+            f.write(base64.decodebytes(
+                bytes(stats.iloc[0, 3], encoding='utf-8')))
+    except Exception as e:
+        print(str(e))
+
+    try:
+        model_min = keras.models.load_model("model_min.h5")
+        model_max = keras.models.load_model("model_max.h5")
+
+        # Load one hot encoder
+        f_enc = open("encoder.pickle", "rb")
+        enc = pickle.load(f_enc)
+
+        f_vect = open("count_vectorizer.pickle", "rb")
+        count_vectorizer = pickle.load(f_vect)
+    except Exception as e:
+        print(str(e))
+
+
+loadModel()
+
+#   ___ _____ _   ___ _____     _   ___ ___
+#  / __|_   _/_\ | _ \_   _|   /_\ | _ \ _ \
+#  \__ \ | |/ _ \|   / | |    / _ \|  _/  _/
+#  |___/ |_/_/ \_\_|_\ |_|   /_/ \_\_| |_|
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=False)
