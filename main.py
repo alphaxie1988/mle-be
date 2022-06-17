@@ -116,45 +116,6 @@ def index():
     )
 
 
-@app.route('/', methods=['POST'])
-def save_vote():
-    # Get the team and time the vote was cast.
-    team = request.form['team']
-    time_cast = datetime.utcnow()
-    # Verify that the team is one of the allowed options
-    if team != "TABS" and team != "SPACES":
-        logger.warning(team)
-        return Response(
-            response="Invalid team specified.",
-            status=400
-        )
-
-    stmt = sqlalchemy.text(
-        "INSERT INTO votes (time_cast, candidate)"
-        " VALUES (:time_cast, :candidate)"
-    )
-    totals_stmt = sqlalchemy.text(
-        "UPDATE totals SET num_votes = num_votes + 1 WHERE candidate=:candidate"
-    )
-    try:
-        with db.connect() as conn:
-            conn.execute(stmt, time_cast=time_cast, candidate=team)
-            conn.execute(totals_stmt, candidate=team)
-    except Exception as e:
-        logger.exception(e)
-        return Response(
-            status=500,
-            response="Unable to successfully cast vote! Please check the "
-                     "application logs for more details."
-        )
-
-    return Response(
-        status=200,
-        response="Vote successfully cast for '{}' at time {}!".format(
-            team, time_cast)
-    )
-
-
 @app.route("/resetcrawl")
 def resetcrawl():
     with db.connect() as conn:
@@ -264,7 +225,6 @@ def crawl():
                                     pass
                         else:
                             break
-
     except Exception as e:
         logger.exception(e)
         return Response(
@@ -422,10 +382,10 @@ def train():
         'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
 
     print(x_train.shape)
-            #   ___  ___ ___ ___ _  _ ___   __  __  ___  ___  ___ _
-            #  |   \| __| __|_ _| \| | __| |  \/  |/ _ \|   \| __| |
-            #  | |) | _|| _| | || .` | _|  | |\/| | (_) | |) | _|| |__
-            #  |___/|___|_| |___|_|\_|___| |_|  |_|\___/|___/|___|____|
+    #   ___  ___ ___ ___ _  _ ___   __  __  ___  ___  ___ _
+    #  |   \| __| __|_ _| \| | __| |  \/  |/ _ \|   \| __| |
+    #  | |) | _|| _| | || .` | _|  | |\/| | (_) | |) | _|| |__
+    #  |___/|___|_| |___|_|\_|___| |_|  |_|\___/|___/|___|____|
 
     nn = Sequential()
     nn.add(Dense(78, input_dim=x_train.shape[1], activation='relu'))
@@ -443,10 +403,10 @@ def train():
 
     print(x_test.shape)
 
-            #   __  __ ___ _  _   ___   _   _      _   _____   __  __  __  ___  ___  ___ _
-            #  |  \/  |_ _| \| | / __| /_\ | |    /_\ | _ \ \ / / |  \/  |/ _ \|   \| __| |
-            #  | |\/| || || .` | \__ \/ _ \| |__ / _ \|   /\ V /  | |\/| | (_) | |) | _|| |__
-            #  |_|  |_|___|_|\_| |___/_/ \_\____/_/ \_\_|_\ |_|   |_|  |_|\___/|___/|___|____|
+    #   __  __ ___ _  _   ___   _   _      _   _____   __  __  __  ___  ___  ___ _
+    #  |  \/  |_ _| \| | / __| /_\ | |    /_\ | _ \ \ / / |  \/  |/ _ \|   \| __| |
+    #  | |\/| || || .` | \__ \/ _ \| |__ / _ \|   /\ V /  | |\/| | (_) | |) | _|| |__
+    #  |_|  |_|___|_|\_| |___/_/ \_\____/_/ \_\_|_\ |_|   |_|  |_|\___/|___/|___|____|
 
     nn.fit(x_train, y_train['minsalary'], epochs=20, batch_size=100, verbose=2)
     y_pred_test_nn_min = nn.predict(x_test)
@@ -468,11 +428,10 @@ def train():
     with open("model_min.h5", "rb") as image_file:
         model_min = base64.b64encode(image_file.read())
 
-
-            #   __  __   _   __  __  ___   _   _      _   _____   __  __  __  ___  ___  ___ _
-            #  |  \/  | /_\  \ \/ / / __| /_\ | |    /_\ | _ \ \ / / |  \/  |/ _ \|   \| __| |
-            #  | |\/| |/ _ \  >  <  \__ \/ _ \| |__ / _ \|   /\ V /  | |\/| | (_) | |) | _|| |__
-            #  |_|  |_/_/ \_\/_/\_\ |___/_/ \_\____/_/ \_\_|_\ |_|   |_|  |_|\___/|___/|___|____|
+        #   __  __   _   __  __  ___   _   _      _   _____   __  __  __  ___  ___  ___ _
+        #  |  \/  | /_\  \ \/ / / __| /_\ | |    /_\ | _ \ \ / / |  \/  |/ _ \|   \| __| |
+        #  | |\/| |/ _ \  >  <  \__ \/ _ \| |__ / _ \|   /\ V /  | |\/| | (_) | |) | _|| |__
+        #  |_|  |_/_/ \_\/_/\_\ |___/_/ \_\____/_/ \_\_|_\ |_|   |_|  |_|\___/|___/|___|____|
 
     nn.fit(
         x_train, y_train['maxsalary'], epochs=20, batch_size=100, verbose=2)
@@ -490,10 +449,10 @@ def train():
     print('Max salary R-square:' + str(max_R2))
     print('Max salary Adjusted R2: ' + str(max_adj_R2))
 
-            #   ___   ___   _____   __  __  ___  ___  ___ _
-            #  / __| /_\ \ / / __| |  \/  |/ _ \|   \| __| |
-            #  \__ \/ _ \ V /| _|  | |\/| | (_) | |) | _|| |__
-            #  |___/_/ \_\_/ |___| |_|  |_|\___/|___/|___|____|
+    #   ___   ___   _____   __  __  ___  ___  ___ _
+    #  / __| /_\ \ / / __| |  \/  |/ _ \|   \| __| |
+    #  \__ \/ _ \ V /| _|  | |\/| | (_) | |) | _|| |__
+    #  |___/_/ \_\_/ |___| |_|  |_|\___/|___/|___|____|
 
     nn.save("model_max.h5")
     with open("model_max.h5", "rb") as image_file:
@@ -534,15 +493,9 @@ def train():
 
 @ app.route("/predict", methods=['POST'])
 def predict():
-    # model = pickle.load("gs://sadsaas/asd.model")
-    # return model.predict(job)
-    print(request.get_json())
-    # Dummy Data
-    # 'skills': "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobSkills']]),
     data = {
         'categories':  "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobCategory']])+"|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobType']]),
         'positionlevels':  "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobPositionLevels']]),
-        # 'employmenttypes':  "|".join([x['value'].replace(" ", "_") for x in request.get_json()['jobType']]),
         'minimumyearsexperience': int(request.get_json()['minimumYOE']),
         'numberofvacancies': int(request.get_json()['numberofvacancies']),
     }
@@ -583,14 +536,6 @@ def predict():
 
 @ app.route("/stats")
 def stats():
-    # with db.connect() as conn:
-    #     x_test = pd.read_sql("select * from model", conn)
-    # rsquarevalue = [{"name": str(
-    #     x+1)+" Jun 2022",  "Max R² Square Value":  random.randint(80, 100), "Min R² Square Value":  random.randint(80, 100)} for x in range(8)]
-    # RMSE = [{"name": str(
-    #     x+1)+" Jun 2022",  "Max RMSE":  random.randint(800, 1000)/1000}, "Min RMSE":  random.randint(800, 1000)/1000} for x in range(8)]
-    # newjob = [{"name": str(
-    #     x+1)+" Jun 2022",  "New Job":  random.randint(140, 200)} for x in range(8)]
     with db.connect() as conn:
         stats = pd.read_sql(
             "select to_char(\"createdDate\", 'DD Mon YY, HH24:MI')  as day, min_rmse, min_rsquare, max_rmse, max_rsquare from model order by 1 desc limit 5", conn)
