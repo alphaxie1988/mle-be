@@ -475,7 +475,7 @@ def train():
 
         if db_row != 0:
             conn.execute(
-                "update model set selected = 0 where id = (select max(id) from model)")
+                "update model set selected = 0")
 
         conn.execute(
             "insert into model values (default, 'NN', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1,"+str(model_min)[1:]+","+str(model_max)[1:]+","+str(encoder)[1:]+","+str(countvectorizer)[1:]+")")
