@@ -538,13 +538,13 @@ def predict():
 def stats():
     with db.connect() as conn:
         stats = pd.read_sql(
-            "select to_char(\"createdDate\", 'DD Mon YY, HH24:MI')  as day, min_rmse, min_rsquare, max_rmse, max_rsquare from model order by 1 desc limit 5", conn)
+            "select to_char(\"createdDate\", 'DD Mon YY, HH24:MI')  as day, min_rmse, min_rsquare, max_rmse, max_rsquare from model order by 1 desc limit 7", conn)
         rsquarevalue = [{"name": str(x), "Min R² Square Value":  round(y, 3), "Max R² Square Value": round(z, 3)}
                         for x, y, z in zip(stats["day"][::-1], stats["min_rsquare"][::-1], stats["max_rsquare"][::-1])]
         RMSE = [{"name": str(x), "Min RMSE":  round(y, 2), "Max RMSE": round(z, 2)}
                 for x, y, z in zip(stats["day"][::-1], stats["min_rmse"][::-1], stats["max_rmse"][::-1])]
         stats = pd.read_sql(
-            "select Date(crawldate) as day, count(*) as count from careers group by DATE(crawldate) order by 1 desc limit 5;", conn)
+            "select Date(crawldate) as day, count(*) as count from careers group by DATE(crawldate) order by 1 desc limit 7;", conn)
         newjob = [{"name": str(x), "New Job":  round(y, 2)}
                   for x, y in zip(stats["day"][::-1], stats["count"][::-1])]
     return Response(json.dumps({"rsquarevalue": rsquarevalue, "RMSE": RMSE, "newjob": newjob}), 200, mimetype='application/json')
@@ -587,7 +587,7 @@ def updateData():
 @ app.route("/model")
 def modellist():
     df = pd.read_sql(
-        "select id,\"createdDate\", min_rmse, min_adjrsquare, min_rsquare, max_rmse, max_adjrsquare, max_rsquare, selected FROM public.model order by 1 desc limit 5", db.connect())
+        "select id,\"createdDate\", min_rmse, min_adjrsquare, min_rsquare, max_rmse, max_adjrsquare, max_rsquare, selected FROM public.model order by 1 desc limit 7", db.connect())
 
     return Response(json.dumps([{v: str(x[k]) for (k, v) in enumerate(df)}for x in df.values]
                                ), 200,  mimetype='application/json')
