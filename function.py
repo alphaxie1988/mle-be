@@ -17,7 +17,7 @@ def hello_pubsub(event, context):
     try:
         if(temp["status"] in ["QUEUED", "SUCCESS", "WORKING", "TIMEOUT", "CANCELLED", "FAILED", "FAILURE"]):
             requests.get(
-                "https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__%0ABuild%20Job%20Status%20Updated%0AImage%20:"+str(temp["images"])+"%0AStatus:%20"+str(temp["status"]))
+                "https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__CICD__%0ABuild%20Job%20Status%20Updated%0AImage%20:"+str(temp["images"])+"%0AStatus:%20"+str(temp["status"]))
         if(temp["status"] == "SUCCESS"):
             url = 'https://mle-be-zolecwvnzq-uc.a.run.app/predict'
             myobj = {"numberofvacancies": 1, "jobCategory": [],
@@ -27,11 +27,11 @@ def hello_pubsub(event, context):
             try:
                 if(result["pMaxSal"] > 0 and result["pMaxSal"] > 0):
                     requests.get("https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(
-                        datetime.now())[0:-7]+"__%0ABuild%20Job%20Status%20Updated%0ATest%20Result%20: OK")
+                        datetime.now())[0:-7]+"__CICD__%0ABuild%20Job%20Status%20Updated%0ATest%20Result%20: OK")
                     print("OK")
             except:
-                requests.get("https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__" +
-                             str(datetime.now())[0:-7]+"__%0ABuild%20Job%20Status%20Updated%0ATest%20Result%20: FAIL")
+                requests.get("https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(
+                    datetime.now())[0:-7]+"__CICD__%0ABuild%20Job%20Status%20Updated%0ATest%20Result%20: FAIL")
                 print("Fail")
     except:
         print("Error")
