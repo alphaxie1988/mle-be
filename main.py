@@ -134,13 +134,14 @@ def crawl():
         isCrawling = bool(int(isCrawling[0]))
     if (isCrawling):
         return f"Already Crawling, please wait!"
-    requests.get(
-        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__MLP__%0A1.%20*Job%20Started*%0A2.%20Crawl%20Started")
-
-    # Start to Crawl Code Here
+        # Start to Crawl Code Here
     print("Start to Crawl")
     with db.connect() as conn:
         conn.execute("UPDATE mle SET value = '1' WHERE key='crawling'")
+
+    requests.get(
+        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__MLP__%0A1.%20*Job%20Started*%0A2.%20Crawl%20Started")
+
     ##################### JIE YUAN START HERE ##############
     with db.connect() as conn:
         numberOfJobBefore = int(conn.execute(
@@ -226,6 +227,8 @@ def crawl():
                         else:
                             break
     except Exception as e:
+        requests.get(
+            "https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__MLP__%0ACRAWL_ERROR")
         logger.exception(e)
         return Response(
             status=500,
@@ -288,7 +291,7 @@ def clean():
             "update careers set status = 1, remarks=Concat(remarks,'Min salary is too low|') where minsalary <= 100 and status = 0")
     with db.connect() as conn:
         conn.execute(
-            "update careers set status = 1, remarks=Concat(remarks,'Max salary is too hight|') where maxsalary >= 50000 and status = 0")
+            "update careers set status = 1, remarks=Concat(remarks,'Max salary is too high|') where maxsalary >= 50000 and status = 0")
     # update the rest
     with db.connect() as conn:
         conn.execute("update careers set status = 2 where status = 0")
