@@ -15,16 +15,16 @@
 # [START cloudbuild_python_dependencies_yaml]
 steps:
   # Install dependencies
-  # - name: python
-  #   entrypoint: pip
-  #   args: ["install", "-r", "requirements.txt", "--user"]
-  # # [END cloudbuild_python_dependencies_yaml]
+  - name: python
+    entrypoint: pip
+    args: ["install", "-r", "requirements.txt", "--user"]
+  # [END cloudbuild_python_dependencies_yaml]
 
   # [START cloudbuild_python_tests_yaml]
   # Run unit tests
-  # - name: python
-  #   entrypoint: python
-  #   args: ["-m", "pytest", "--junitxml=${SHORT_SHA}_test_log.xml"]
+  - name: python
+    entrypoint: python
+    args: ["-m", "pytest", "--junitxml=${SHORT_SHA}_test_log.xml"]
   # [END cloudbuild_python_tests_yaml]
 
   # [START cloudbuild_python_image_yaml]
@@ -61,11 +61,11 @@ steps:
 
 # [START cloudbuild_python_logs_yaml]
 # Save test logs to Google Cloud Storage
-# artifacts:
-#   objects:
-#     location: gs://${PROJECT_ID}/
-#     paths:
-#       - ${SHORT_SHA}_test_log.xml
+artifacts:
+  objects:
+    location: gs://${PROJECT_ID}/
+    paths:
+      - ${SHORT_SHA}_test_log.xml
 # [END cloudbuild_python_logs_yaml]
 # Store images in Google Artifact Registry
 images:
