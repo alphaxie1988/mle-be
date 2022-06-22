@@ -662,7 +662,10 @@ def loadModel():
         print(str(e))
 
 
-loadModel()
+try:
+    loadModel()
+except:
+    print("most likely cannot connect to db")
 
 #   ___ _____ _   ___ _____     _   ___ ___
 #  / __|_   _/_\ | _ \_   _|   /_\ | _ \ _ \
