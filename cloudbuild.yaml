@@ -18,6 +18,7 @@ steps:
   - name: python:3.9
     entrypoint: pip
     args: ["install", "-r", "requirements.txt", "--user"]
+
   # [END cloudbuild_python_dependencies_yaml]
 
   # [START cloudbuild_python_tests_yaml]
@@ -71,3 +72,4 @@ artifacts:
 images:
   - gcr.io/${PROJECT_ID}/myimage:${SHORT_SHA}
 # [END cloudbuild_python_yaml]
+timeout: 720s
