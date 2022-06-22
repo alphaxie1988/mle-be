@@ -31,7 +31,14 @@ steps:
   # [START cloudbuild_python_image_yaml]
   # Docker Build
   - name: "gcr.io/cloud-builders/docker"
-    args: ["build", "-t", "gcr.io/${PROJECT_ID}/myimage:${SHORT_SHA}", "."]
+    args:
+      [
+        "build",
+        "-t",
+        "gcr.io/${PROJECT_ID}/myimage:${SHORT_SHA}",
+        "--cache-from",
+        ".",
+      ]
   # [END cloudbuild_python_image_yaml]
 
   # [START cloudbuild_python_push_yaml]
@@ -62,14 +69,14 @@ steps:
 
 # [START cloudbuild_python_logs_yaml]
 # Save test logs to Google Cloud Storage
-artifacts:
-  objects:
-    location: gs://${PROJECT_ID}/
-    paths:
-      - ${SHORT_SHA}_test_log.xml
+# artifacts:
+#   objects:
+#     location: gs://${PROJECT_ID}/
+#     paths:
+#       - ${SHORT_SHA}_test_log.xml
 # [END cloudbuild_python_logs_yaml]
 # Store images in Google Artifact Registry
 images:
   - gcr.io/${PROJECT_ID}/myimage:${SHORT_SHA}
 # [END cloudbuild_python_yaml]
-timeout: 720s
+timeout: 1000s
