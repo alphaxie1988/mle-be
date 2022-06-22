@@ -661,7 +661,7 @@ def loadModel():
     except Exception as e:
         print(str(e))
 
-jieyuan
+
 try:
     loadModel()
 except:
