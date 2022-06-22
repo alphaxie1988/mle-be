@@ -22,7 +22,7 @@ steps:
 
   # [START cloudbuild_python_tests_yaml]
   # Run unit tests
-  - name: python
+  - name: python:3.9
     entrypoint: python
     args: ["-m", "pytest", "--junitxml=${SHORT_SHA}_test_log.xml"]
   # [END cloudbuild_python_tests_yaml]
