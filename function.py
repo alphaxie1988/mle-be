@@ -16,24 +16,30 @@ def hello_pubsub(event, context):
         "True", "\"True\"").replace("False", "\"False\""))
     try:
         if(temp["status"] in ["QUEUED", "SUCCESS", "WORKING", "TIMEOUT", "CANCELLED", "FAILED", "FAILURE"]):
-            requests.get(
-                "https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__CICD__%0ABuild%20Job%20Status%20Updated%0AImage%20:"+str(temp["images"])+"%0AStatus:%20"+str(temp["status"]))
-        if(temp["status"] == "SUCCESS"):
-            url = 'https://mle-be-zolecwvnzq-uc.a.run.app/predict'
-            myobj = {"numberofvacancies": 1, "jobCategory": [],
-                     "jobType": [], "jobPositionLevels": [], "minimumYOE": "1"}
-            result = json.loads(requests.post(url, json=myobj).content)
-            time.sleep(20)
-            try:
-                if(result["pMaxSal"] > 0 and result["pMaxSal"] > 0):
+            requests.get("https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__CICD__%0ABuild%20Job%20Status%20Updated%0AImage%20:"+str(
+                temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0Ahttp://clipart-library.com/images/qTBoEbdMc.png")
+            if(temp["status"] == "SUCCESS"):
+                time.sleep(20)
+                url = 'https://mle-be-zolecwvnzq-uc.a.run.app/predict'
+                myobj = {"numberofvacancies": 1, "jobCategory": [],
+                         "jobType": [], "jobPositionLevels": [], "minimumYOE": "1"}
+                try:
+                    result = json.loads(requests.post(url, json=myobj).content)
+                    if(result["pMinSal"] > 0 and result["pMaxSal"] > 0):
+                        requests.get("https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[
+                                     0:-7]+"__CICD__%0ABuild%20Job%20Status%20Updated%0ATest%20Result%20: OK%0Ahttps://tinyurl.com/2022mle")
+                        print("OK")
+                except:
                     requests.get("https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(
-                        datetime.now())[0:-7]+"__CICD__%0ABuild%20Job%20Status%20Updated%0ATest%20Result%20: OK")
-                    print("OK")
-            except:
-                requests.get("https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(
-                    datetime.now())[0:-7]+"__CICD__%0ABuild%20Job%20Status%20Updated%0ATest%20Result%20: FAIL")
-                print("Fail")
+                        datetime.now())[0:-7]+"__CICD__%0ABuild%20Job%20Status%20Updated%0ATest%20Result%20: FAIL")
+                    print("Fail")
+            elif(temp["status"] in ["FAILED", "TIMEOUT", "FAILURE"]):
+                requests.get("https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__CICD__%0ABuild%20Job%20Status%20Updated%0AImage%20:"+str(
+                    temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0Ahttp://clipart-library.com/images/BiaE8gobT.png")
+            else:
+                requests.get("https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[
+                             0:-7]+"__CICD__%0ABuild%20Job%20Status%20Updated%0AImage%20:"+str(temp["images"])+"%0AStatus:%20"+str(temp["status"]))
     except:
         print("Error")
-        # print(pubsub_message)
+     # print(pubsub_message)
     print("|||"+str(temp)+"|||")
