@@ -26,7 +26,6 @@ from keras.models import Sequential
 import keras
 import pickle
 from numpy.random import seed
-import tensorflow as tf
 import base64
 
 #   ___ _  _ ___ _____ ___   _   _    ___ ___ ___ _  _  ___
@@ -322,7 +321,6 @@ def train():
 
     # Set Random Seed
     seed(2021)
-    tf.random.set_seed(2021)
 
     with db.connect() as conn:
         train_days = pd.read_sql(
