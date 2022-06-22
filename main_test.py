@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import pytest
-
 import main
 
 
@@ -28,19 +26,3 @@ def test_handler_no_env_variable(client):
     r = client.get("/")
     print(r.data.decode())
     assert r.data.decode() == "Up and Running: Student Project by SMU"
-    #assert r.status_code == 200
-
-
-# def test_handler_with_env_variable(client):
-#     os.environ["NAME"] = "Foo"
-#     r = client.get("/")
-
-#     assert r.data.decode() == "Hello Foo!"
-#     assert r.status_code == 200
-
-# def isOdd(num):
-#     return (num&1)
-
-
-# isOdd(1).(True)
-# isOdd(1).assert(True)
