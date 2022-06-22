@@ -15,7 +15,7 @@
 # [START cloudbuild_python_dependencies_yaml]
 steps:
   # Install dependencies
-  - name: python
+  - name: python:3.9
     entrypoint: pip
     args: ["install", "-r", "requirements.txt", "--user"]
   # [END cloudbuild_python_dependencies_yaml]
