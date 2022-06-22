@@ -541,7 +541,7 @@ def stats():
     with db.connect() as conn:
         stats = pd.read_sql(
             "select to_char(\"createdDate\", 'DD Mon YY, HH24:MI')  as day, min_rmse, min_rsquare, max_rmse, max_rsquare from model order by 1 desc limit 7", conn)
-        rsquarevalue = [{"name": str(x), "Min R² Square Value":  round(y, 3), "Max R² Square Value": round(z, 3)}
+        rsquarevalue = [{"name": str(x), "Min R² Value":  round(y, 3), "Max R² Value": round(z, 3)}
                         for x, y, z in zip(stats["day"][::-1], stats["min_rsquare"][::-1], stats["max_rsquare"][::-1])]
         RMSE = [{"name": str(x), "Min RMSE":  round(y, 2), "Max RMSE": round(z, 2)}
                 for x, y, z in zip(stats["day"][::-1], stats["min_rmse"][::-1], stats["max_rmse"][::-1])]
