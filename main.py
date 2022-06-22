@@ -100,8 +100,10 @@ def init_unix_connection_engine(db_config):
     return pool
 
 
-db = init_db_connection()
-
+try:
+    db = init_db_connection()
+except:
+    print("fail to connect to database")
 #   ___ ___ ___ _____ ___ _   _ _        _   ___ ___
 #  | _ \ __/ __|_   _| __| | | | |      /_\ | _ \_ _|
 #  |   / _|\__ \ | | | _|| |_| | |__   / _ \|  _/| |
