@@ -18,7 +18,7 @@ def hello_pubsub(event, context):
         if(temp["status"] in ["QUEUED", "SUCCESS", "WORKING", "TIMEOUT", "CANCELLED", "FAILED", "FAILURE"]):
             if(temp["status"] == "SUCCESS"):
                 requests.get("https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__CICD__%0ABuild%20Job%20Status%20Updated%0AImage%20:"+str(
-                    temp["images"])+"%0AStatus:%20"+str(temp["status"]))
+                    temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0Ahttp://clipart-library.com/images/qTBoEbdMc.png")
                 time.sleep(20)
                 url = 'https://mle-be-zolecwvnzq-uc.a.run.app/predict'
                 myobj = {"numberofvacancies": 1, "jobCategory": [],
