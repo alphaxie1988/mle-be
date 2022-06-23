@@ -684,6 +684,11 @@ try:
 except:
     print("most likely cannot connect to db")
 
+#   ___  ___   _ _____ _____ ___ ___ ___ _    ___ _____
+#  / __|/ __| /_\_   _|_   _| __| _ \ _ \ |  / _ \_   _|
+#  \__ \ (__ / _ \| |   | | | _||   /  _/ |_| (_) || |
+#  |___/\___/_/ \_\_|   |_| |___|_|_\_| |____\___/ |_|
+
 
 @app.route('/minplot.png')
 def plot1_png():
@@ -695,9 +700,6 @@ def plot1_png():
     except:
 
         return Response("", mimetype='image/png')
-
-
-jieyuan
 
 
 @app.route('/maxplot.png')
