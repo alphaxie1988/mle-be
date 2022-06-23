@@ -3,6 +3,9 @@
 #   | || |\/| |  _/ (_) |   / | |
 #  |___|_|  |_|_|  \___/|_|_\ |_|
 
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import io
 import datetime
 import logging
 import os
@@ -451,6 +454,22 @@ def train(id):
     print('Max salary R-square:' + str(max_R2))
     print('Max salary Adjusted R2: ' + str(max_adj_R2))
 
+    fig = Figure()
+    axis = fig.add_subplot(1, 1, 1)
+    # axis.plot(xs, ys)
+    axis.scatter(y_test['minsalary'], y_pred_test_nn_min,
+                 color='red', alpha=0.1, s=10)
+    output = io.BytesIO()
+    FigureCanvas(fig).print_png(output)
+    minb64 = str(base64.b64encode(output.getvalue()))
+    fig2 = Figure()
+    axis2 = fig2.add_subplot(1, 1, 1)
+    # axis.plot(xs, ys)
+    axis2.scatter(y_test['maxsalary'], y_pred_test_nn_max,
+                  color='green', alpha=0.1, s=10)
+    output2 = io.BytesIO()
+    FigureCanvas(fig2).print_png(output2)
+    maxb64 = str(base64.b64encode(output2.getvalue()))
     #   ___   ___   _____   __  __  ___  ___  ___ _
     #  / __| /_\ \ / / __| |  \/  |/ _ \|   \| __| |
     #  \__ \/ _ \ V /| _|  | |\/| | (_) | |) | _|| |__
@@ -480,7 +499,7 @@ def train(id):
                 "update model set selected = 0")
 
         conn.execute(
-            "insert into model values (default, 'NN', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1,"+str(model_min)[1:]+","+str(model_max)[1:]+","+str(encoder)[1:]+","+str(countvectorizer)[1:]+")")
+            "insert into model values (default, 'NN', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1,"+str(model_min)[1:]+","+str(model_max)[1:]+","+str(encoder)[1:]+","+str(countvectorizer)[1:]+","+minb64[1:]+","+maxb64[1:]+")")
 
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
@@ -523,7 +542,7 @@ def predict():
         x_test_one_hot_data, columns=feature_name)
 
     x_test = pd.concat([x_test_categories_and_type_df, x_test_one_hot_data_df, x_test[[
-                       'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
+        'minimumyearsexperience', 'numberofvacancies']].reset_index(drop=True), ], axis=1)
 
     y_pred_test_nn_min = model_min.predict(x_test)
     y_pred_test_nn_max = model_max.predict(x_test)
@@ -665,10 +684,36 @@ try:
 except:
     print("most likely cannot connect to db")
 
+
+@app.route('/minplot.png')
+def plot1_png():
+    try:
+        b64 = pd.read_sql(
+            "select minplot FROM public.model where selected = 1 order by 1 desc limit 1", db.connect()).iloc[0, 0]
+        o64 = base64.b64decode(b64)
+        return Response(o64, mimetype='image/png')
+    except:
+
+        return Response("", mimetype='image/png')
+
+
+@app.route('/maxplot.png')
+def plot2_png():
+    try:
+        b64 = pd.read_sql(
+            "select maxplot FROM public.model where selected = 1 order by 1 desc limit 1", db.connect()).iloc[0, 0]
+        o64 = base64.b64decode(b64)
+        return Response(o64, mimetype='image/png')
+    except:
+
+        return Response("", mimetype='image/png')
+
+
 #   ___ _____ _   ___ _____     _   ___ ___
 #  / __|_   _/_\ | _ \_   _|   /_\ | _ \ _ \
 #  \__ \ | |/ _ \|   / | |    / _ \|  _/  _/
 #  |___/ |_/_/ \_\_|_\ |_|   /_/ \_\_| |_|
+
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=False)
