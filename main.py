@@ -293,7 +293,7 @@ def clean(id):
             "update careers set status = 1, remarks=Concat(remarks,'Min salary is too low|') where minsalary <= 100 and status = 0")
     with db.connect() as conn:
         conn.execute(
-            "update careers set status = 1, remarks=Concat(remarks,'Max salary is too high|') where maxsalary >= 50000 and status = 0")
+            "update careers set status = 1, remarks=Concat(remarks,'Max salary is too high|') where maxsalary >= 30000 and status = 0")
     # update the rest
     with db.connect() as conn:
         conn.execute("update careers set status = 2 where status = 0")
