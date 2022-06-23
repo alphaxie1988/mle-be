@@ -697,6 +697,9 @@ def plot1_png():
         return Response("", mimetype='image/png')
 
 
+jieyuan
+
+
 @app.route('/maxplot.png')
 def plot2_png():
     try:
