@@ -22,7 +22,7 @@ def hello_pubsub(event, context):
             if(temp["status"] == "SUCCESS"):
                 requests.get(cloudfunctionMessage+"Image%20:"+str(
                     temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0A😃")
-                time.sleep(20)
+                time.sleep(10)
                 url = 'https://mle-be-zolecwvnzq-uc.a.run.app/predict'
                 myobj = {"numberofvacancies": 1, "jobCategory": [],
                          "jobType": [], "jobPositionLevels": [], "minimumYOE": "1"}
@@ -30,11 +30,11 @@ def hello_pubsub(event, context):
                     result = json.loads(requests.post(url, json=myobj).content)
                     if(result["pMinSal"] > 0 and result["pMaxSal"] > 0):
                         requests.get(
-                            cloudfunctionMessage+"Test%20Result%20: OK%0Ahttps://tinyurl.com/2022mle")
+                            cloudfunctionMessage+"Test%20Result%20: OK✔️%0Ahttps://tinyurl.com/2022mle")
                         print("OK")
                 except:
                     requests.get(
-                        cloudfunctionMessage+"Test%20Result%20: FAIL%0A🤦")
+                        cloudfunctionMessage+"Test%20Result%20: FAIL❌")
                     print("Fail")
 
             if(temp["status"] == "TIMEOUT"):
