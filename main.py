@@ -145,7 +145,7 @@ def crawl():
         conn.execute("UPDATE mle SET value = '1' WHERE key='crawling'")
     id = str(datetime.now())[14:-7]
     requests.get(
-        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A1.%20*Job%20Started*%0A2.%20Crawl%20Started")
+        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendMessage?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A1.%20*🏁Job%20Started*%0A2.%20🐛Crawl%20Started")
 
     ##################### JIE YUAN START HERE ##############
     with db.connect() as conn:
@@ -232,7 +232,7 @@ def crawl():
                             break
     except Exception as e:
         requests.get(
-            "https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0ACRAWL_ERROR")
+            "https://us-central1-mle-by-xjl.cloudfunctions.net/sendMessage?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0ACRAWL_ERROR")
         logger.exception(e)
         return Response(
             status=500,
@@ -256,7 +256,7 @@ def crawl():
         numberOfJobAfter = int(conn.execute(
             "SELECT count(*) FROM careers").fetchone()[0])
     requests.get(
-        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A8.%20*Job%20Ended*%0ANumber%20Of%20New%20Jobs:%20"+str(numberOfJobAfter-numberOfJobBefore))
+        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendMessage?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A8.%20*🏁Job%20Ended*%0A🆕Number%20Of%20New%20Jobs:%20"+str(numberOfJobAfter-numberOfJobBefore))
     # End of Crawl
     return f"Thank you for waiting!"
     # return Response(
@@ -272,8 +272,8 @@ def crawl():
 
 def clean(id):
     requests.get(
-        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__" +
-        str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A3.%20Crawl%20Ended%0A4.%20Cleaning%20Started")
+        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendMessage?message=__" +
+        str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A3.%20🐛Crawl%20Ended%0A4.%20🧹Cleaning%20Started")
     ########### Start Cleaning ############
     ######## Anna start here ###########
     # 1) read all data from careers table where column included is null
@@ -310,7 +310,7 @@ def clean(id):
     ######## Anna end here #########
     ########## End Cleaning ##############
     requests.get(
-        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A5.%20Cleaning%20Ended%0ANumber%20Of%20Flagged:%20"+str(numberOfFlagedAfter-numberOfFlagedBefore)+"%0A6.%20Training%20Started")
+        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendMessage?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A5.%20🧹Cleaning%20Ended%0A🚩Number%20Of%20Flagged:%20"+str(numberOfFlagedAfter-numberOfFlagedBefore)+"%0A6.%20🏋Training%20Started")
     train(id)
 
 #   _____ ___    _   ___ _  _ ___ _  _  ___
@@ -504,7 +504,7 @@ def train(id):
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
     requests.get(
-        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendmsg?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A7.%20Training%20Ended%0AMin_RMSE:%20" + str(round(min_RMSE, 3))+"%0AMax_RMSE:%20" + str(round(max_RMSE, 3))+"%0AMin_R2:%20" + str(round(min_R2, 3))+"%0AMax_R2:%20" + str(round(max_R2, 3)))
+        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendMessage?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A7.%20🏋Training%20Ended%0AMin_RMSE:%20" + str(round(min_RMSE, 3))+"%0AMax_RMSE:%20" + str(round(max_RMSE, 3))+"%0AMin_R2:%20" + str(round(min_R2, 3))+"%0AMax_R2:%20" + str(round(max_R2, 3)))
 
 #   ___ ___ ___ ___ ___ ___ _____
 #  | _ \ _ \ __|   \_ _/ __|_   _|
