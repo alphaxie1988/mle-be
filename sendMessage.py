@@ -1,27 +1,37 @@
-import requests
 import os
+import telegram
+import requests
+import uuid
 
 
-def hello_world(request):
-    """Responds to any HTTP request.
-    Args:
-        request (flask.Request): HTTP request object.
-    Returns:
-        The response text or any set of values that can be turned into a
-        Response object using
-        `make_response <http://flask.pocoo.org/docs/1.0/api/#flask.Flask.make_response>`.
-    """
-    request_json = request.get_json()
-    userlist =  ['43086293','562121642','1871580685','241359338']
-    if request.args and 'message' in request.args:
-        for user in userlist:
-            requests.get("https://api.telegram.org/bot"+str(os.environ["TELEGRAM_TOKEN"])+"/sendMessage?chat_id=" +
-                         user+"&text="+str(request.args.get('message')))
-        return request.args.get('message')
-    elif request_json and 'message' in request_json:
-        for user in userlist:
-            requests.get("https://api.telegram.org/bot"+str(os.environ["TELEGRAM_TOKEN"])+"/sendMessage?chat_id=" +
-                         user+"&text="+str(request_json['message']))
-        return request_json['message']
-    else:
-        return f'Hello World!'
+bot = telegram.Bot(token=os.environ["TELEGRAM_TOKEN"])
+print("KEY", os.environ["TELEGRAM_TOKEN"])
+
+
+def webhook(request):
+    if request.method == "POST":
+        try:
+            update = telegram.Update.de_json(request.get_json(force=True), bot)
+            chat_id = update.message.chat.id
+            if str(update.message.text) == "/crawl":
+                bot.sendMessage(
+                    chat_id=chat_id, text="Noted, will start crawling if crawling have not started")
+                requests.get("https://mle-be-zolecwvnzq-uc.a.run.app/crawl")
+            elif str(update.message.text) == "/resetcrawl":
+                # Reply with the same message
+                reply = requests.get(
+                    "https://mle-be-zolecwvnzq-uc.a.run.app/resetcrawl")
+                bot.sendMessage(chat_id=chat_id, text=str(reply))
+            elif str(update.message.text) == "/plot":
+                # Reply with the same message
+                bot.sendMessage(
+                    chat_id=chat_id, text="https://mle-be-zolecwvnzq-uc.a.run.app/minplot.png?time="+str(uuid.uuid4()))
+                bot.sendMessage(
+                    chat_id=chat_id, text="https://mle-be-zolecwvnzq-uc.a.run.app/maxplot.png?time="+str(uuid.uuid4()))
+            else:
+                bot.sendMessage(
+                    chat_id=chat_id, text="I do not understand you, you can try to use /crawl to start crawling, /resetcrawl to reset the crawling, /plot to see the error plot.")
+            return "ok"
+        except:
+            return "not ok"
+    return "ok"
