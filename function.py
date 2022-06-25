@@ -3,16 +3,18 @@ import json
 from datetime import datetime
 import requests
 import time
+from datetime import datetime, timedelta
 
 
 def hello_pubsub(event, context):
+    singaporeTime = str(datetime.now() + timedelta(hours=8))
     """Triggered from a message on a Cloud Pub/Sub topic.
     Args:
          event (dict): Event payload.
          context (google.cloud.functions.Context): Metadata for the event.
     """
     cloudfunctionMessage = "https://us-central1-mle-by-xjl.cloudfunctions.net/sendMessage?message=__" + \
-        str(datetime.now())[0:-7] + \
+        singaporeTime[0:-7] + \
         "__CICD__%0ABuild%20Job%20Status%20Updated%0A"
     pubsub_message = base64.b64decode(event['data']).decode('utf-8')
     temp = json.loads(pubsub_message.replace("\'", "\"").replace(
