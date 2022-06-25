@@ -30,11 +30,11 @@ def hello_pubsub(event, context):
                     result = json.loads(requests.post(url, json=myobj).content)
                     if(result["pMinSal"] > 0 and result["pMaxSal"] > 0):
                         requests.get(
-                            cloudfunctionMessage+"Test%20Result%20: OK✔️%0Ahttps://tinyurl.com/2022mle")
+                            cloudfunctionMessage+"Test%20Result%20:%20OK✅%0Ahttps://tinyurl.com/2022mle")
                         print("OK")
                 except:
                     requests.get(
-                        cloudfunctionMessage+"Test%20Result%20: FAIL❌")
+                        cloudfunctionMessage+"Test%20Result%20:%20FAIL❌")
                     print("Fail")
 
             if(temp["status"] == "TIMEOUT"):

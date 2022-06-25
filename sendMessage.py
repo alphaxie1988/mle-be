@@ -1,4 +1,5 @@
 import requests
+import os
 
 
 def hello_world(request):
@@ -14,12 +15,12 @@ def hello_world(request):
     userlist =  ['43086293','562121642','1871580685','241359338']
     if request.args and 'message' in request.args:
         for user in userlist:
-            requests.get("https://api.telegram.org/bot5314948650:AAEWcWIqTqUKxI0YCOynQM3cJxBlAwjJ6hY/sendMessage?chat_id=" +
+            requests.get("https://api.telegram.org/bot"+str(os.environ["TELEGRAM_TOKEN"])+"/sendMessage?chat_id=" +
                          user+"&text="+str(request.args.get('message')))
         return request.args.get('message')
     elif request_json and 'message' in request_json:
         for user in userlist:
-            requests.get("https://api.telegram.org/bot5314948650:AAEWcWIqTqUKxI0YCOynQM3cJxBlAwjJ6hY/sendMessage?chat_id=" +
+            requests.get("https://api.telegram.org/bot"+str(os.environ["TELEGRAM_TOKEN"])+"/sendMessage?chat_id=" +
                          user+"&text="+str(request_json['message']))
         return request_json['message']
     else:
