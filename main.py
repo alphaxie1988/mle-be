@@ -31,6 +31,13 @@ import pickle
 from numpy.random import seed
 import tensorflow as tf
 import base64
+from numpy import loadtxt
+from xgboost import XGBRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from xgboost import plot_importance
+from matplotlib.pyplot import figure
+import matplotlib.pyplot as plt
 
 #   ___ _  _ ___ _____ ___   _   _    ___ ___ ___ _  _  ___
 #  |_ _| \| |_ _|_   _|_ _| /_\ | |  |_ _/ __|_ _| \| |/ __|
@@ -392,36 +399,57 @@ def train(id):
     #  | |) | _|| _| | || .` | _|  | |\/| | (_) | |) | _|| |__
     #  |___/|___|_| |___|_|\_|___| |_|  |_|\___/|___/|___|____|
 
-    nn = Sequential()
-    nn.add(Dense(78, input_dim=x_train.shape[1], activation='relu'))
-    nn.add(Dropout(0.2))
-    nn.add(Dense(39, activation='relu'))
-    nn.add(Dropout(0.2))
-    nn.add(Dense(19, activation='relu'))
-    nn.add(Dropout(0.2))
-    nn.add(Dense(10, activation='relu'))
-    nn.add(Dropout(0.2))
-    nn.add(Dense(1, kernel_initializer='normal'))
-    # Compile model
-    nn.compile(loss='mean_squared_error', optimizer='adam')
-    # nn.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+############ Neural Network (Model 1) #################
+    # nn = Sequential()
+    # nn.add(Dense(78, input_dim=x_train.shape[1], activation='relu'))
+    # nn.add(Dropout(0.2))
+    # nn.add(Dense(39, activation='relu'))
+    # nn.add(Dropout(0.2))
+    # nn.add(Dense(19, activation='relu'))
+    # nn.add(Dropout(0.2))
+    # nn.add(Dense(10, activation='relu'))
+    # nn.add(Dropout(0.2))
+    # nn.add(Dense(1, kernel_initializer='normal'))
+    # # Compile model
+    # nn.compile(loss='mean_squared_error', optimizer='adam')
+    # # nn.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-    print(x_test.shape)
+    # print(x_test.shape)
 
     #   __  __ ___ _  _   ___   _   _      _   _____   __  __  __  ___  ___  ___ _
     #  |  \/  |_ _| \| | / __| /_\ | |    /_\ | _ \ \ / / |  \/  |/ _ \|   \| __| |
     #  | |\/| || || .` | \__ \/ _ \| |__ / _ \|   /\ V /  | |\/| | (_) | |) | _|| |__
     #  |_|  |_|___|_|\_| |___/_/ \_\____/_/ \_\_|_\ |_|   |_|  |_|\___/|___/|___|____|
 
-    nn.fit(x_train, y_train['minsalary'], epochs=20, batch_size=100, verbose=2)
-    y_pred_test_nn_min = nn.predict(x_test)
-    # Evaluation
-    min_MSE = mean_squared_error(y_test['minsalary'], y_pred_test_nn_min)
+
+############ Neural Network (Model 1) #################
+    # nn.fit(x_train, y_train['minsalary'], epochs=20, batch_size=100, verbose=2)
+    # y_pred_test_nn_min = nn.predict(x_test)
+    # # Evaluation
+    # min_MSE = mean_squared_error(y_test['minsalary'], y_pred_test_nn_min)
+    # min_RMSE = mean_squared_error(
+    #     y_test['minsalary'], y_pred_test_nn_min, squared=False)
+    # min_R2 = r2_score(y_test['minsalary'], y_pred_test_nn_min)
+    # min_adj_R2 = 1-(1-r2_score(y_test['minsalary'], y_pred_test_nn_min))*(
+    #     (x_test.shape[0]-1)/(x_test.shape[0]-x_test.shape[1]-1))
+
+    # print('Min salary MSE: ' + str(min_MSE))
+    # print('Min salary RMSE: ' + str(min_RMSE))
+    # print('Min salary R2:' + str(min_R2))
+    # print('Min salary Adjusted R2: ' + str(min_adj_R2))
+
+
+############ XGBoost (Model 2) #################
+    xg_reg = XGBRegressor(objective='reg:squarederror', seed=123, n_estimators=10)
+    xg_reg.fit(x_train, y_train['minsalary'])
+    y_preds_min = xg_reg.predict(x_test)
+
+    min_MSE = mean_squared_error(y_test['minsalary'], y_preds_min)
     min_RMSE = mean_squared_error(
-        y_test['minsalary'], y_pred_test_nn_min, squared=False)
-    min_R2 = r2_score(y_test['minsalary'], y_pred_test_nn_min)
-    min_adj_R2 = 1-(1-r2_score(y_test['minsalary'], y_pred_test_nn_min))*(
-        (x_test.shape[0]-1)/(x_test.shape[0]-x_test.shape[1]-1))
+    y_test['minsalary'], y_preds_min, squared=False)
+    min_R2 = r2_score(y_test['minsalary'], y_preds_min)
+    min_adj_R2 = 1-(1-r2_score(y_test['minsalary'], y_preds_min))*(
+    (x_test.shape[0]-1)/(x_test.shape[0]-x_test.shape[1]-1))
 
     print('Min salary MSE: ' + str(min_MSE))
     print('Min salary RMSE: ' + str(min_RMSE))
@@ -429,7 +457,12 @@ def train(id):
     print('Min salary Adjusted R2: ' + str(min_adj_R2))
 
     # Save Model
-    nn.save("model_min.h5")
+############ Neural Network (Model 1) #################
+    # nn.save("model_min.h5")
+
+############ XGBoost (Model 2) #################
+    xg_reg.save_model("model_min.h5")
+
     with open("model_min.h5", "rb") as image_file:
         model_min = base64.b64encode(image_file.read())
 
@@ -438,44 +471,88 @@ def train(id):
         #  | |\/| |/ _ \  >  <  \__ \/ _ \| |__ / _ \|   /\ V /  | |\/| | (_) | |) | _|| |__
         #  |_|  |_/_/ \_\/_/\_\ |___/_/ \_\____/_/ \_\_|_\ |_|   |_|  |_|\___/|___/|___|____|
 
-    nn.fit(
-        x_train, y_train['maxsalary'], epochs=20, batch_size=100, verbose=2)
-    y_pred_test_nn_max = nn.predict(x_test)
 
-    max_MSE = mean_squared_error(y_test['maxsalary'], y_pred_test_nn_max)
+    ############ Neural Network (Model 1) #################
+    # nn.fit(
+    #     x_train, y_train['maxsalary'], epochs=20, batch_size=100, verbose=2)
+    # y_pred_test_nn_max = nn.predict(x_test)
+
+    # max_MSE = mean_squared_error(y_test['maxsalary'], y_pred_test_nn_max)
+    # max_RMSE = mean_squared_error(
+    #     y_test['maxsalary'], y_pred_test_nn_max, squared=False)
+    # max_R2 = r2_score(y_test['maxsalary'], y_pred_test_nn_max)
+    # max_adj_R2 = 1-(1-r2_score(y_test['maxsalary'], y_pred_test_nn_max))*(
+    #     (x_test.shape[0]-1)/(x_test.shape[0]-x_test.shape[1]-1))
+
+    # print('Max salary MSE: ' + str(max_MSE))
+    # print('Max salary RMSE: ' + str(max_RMSE))
+    # print('Max salary R-square:' + str(max_R2))
+    # print('Max salary Adjusted R2: ' + str(max_adj_R2))
+
+    ############ XGBoost (Model 2) #################
+    xg_reg = XGBRegressor(objective='reg:squarederror', seed=123, n_estimators=10)
+    xg_reg.fit(x_train, y_train['maxsalary'])
+    y_preds_max = xg_reg.predict(x_test)
+
+    max_MSE = mean_squared_error(y_test['maxsalary'], y_preds_max)
     max_RMSE = mean_squared_error(
-        y_test['maxsalary'], y_pred_test_nn_max, squared=False)
-    max_R2 = r2_score(y_test['maxsalary'], y_pred_test_nn_max)
-    max_adj_R2 = 1-(1-r2_score(y_test['maxsalary'], y_pred_test_nn_max))*(
+        y_test['maxsalary'], y_preds_max, squared=False)
+    max_R2 = r2_score(y_test['maxsalary'], y_preds_max)
+    max_adj_R2 = 1-(1-r2_score(y_test['maxsalary'], y_preds_max))*(
         (x_test.shape[0]-1)/(x_test.shape[0]-x_test.shape[1]-1))
 
     print('Max salary MSE: ' + str(max_MSE))
     print('Max salary RMSE: ' + str(max_RMSE))
-    print('Max salary R-square:' + str(max_R2))
+    print('Max salary R2:' + str(max_R2))
     print('Max salary Adjusted R2: ' + str(max_adj_R2))
 
     fig = Figure()
     axis = fig.add_subplot(1, 1, 1)
     # axis.plot(xs, ys)
-    axis.scatter(y_test['minsalary'], y_pred_test_nn_min,
-                 color='red', alpha=0.1, s=10)
+    ############ Neural Network (Model 1) #################
+    # axis.scatter(y_test['minsalary'], y_pred_test_nn_min,
+    #              color='red', alpha=0.1, s=10)
+    ############ XGBoost (Model 2) #################
+
+
+    # for image R2
+    axis.scatter(y_test['minsalary'], y_preds_min,
+                color='red', alpha=0.1, s=10)
     output = io.BytesIO()
     FigureCanvas(fig).print_png(output)
     minb64 = str(base64.b64encode(output.getvalue()))
+
     fig2 = Figure()
     axis2 = fig2.add_subplot(1, 1, 1)
     # axis.plot(xs, ys)
-    axis2.scatter(y_test['maxsalary'], y_pred_test_nn_max,
-                  color='green', alpha=0.1, s=10)
+    ############ Neural Network (Model 1) #################
+    # axis2.scatter(y_test['maxsalary'], y_pred_test_nn_max,
+    #               color='green', alpha=0.1, s=10)
+    ############ XGBoost (Model 2) #################
+    axis2.scatter(y_test['maxsalary'], y_preds_max,
+                color='green', alpha=0.1, s=10)
     output2 = io.BytesIO()
     FigureCanvas(fig2).print_png(output2)
     maxb64 = str(base64.b64encode(output2.getvalue()))
+
+    # for image R2
+    plt.rcParams["figure.figsize"] = (20, 20)
+    plot_importance(xg_reg, max_num_features=10)
+    output = io.BytesIO()
+    FigureCanvas(fig).print_png(output)
+    minb64 = str(base64.b64encode(output.getvalue()))
     #   ___   ___   _____   __  __  ___  ___  ___ _
     #  / __| /_\ \ / / __| |  \/  |/ _ \|   \| __| |
     #  \__ \/ _ \ V /| _|  | |\/| | (_) | |) | _|| |__
     #  |___/_/ \_\_/ |___| |_|  |_|\___/|___/|___|____|
 
-    nn.save("model_max.h5")
+    ############ Neural Network (Model 1) #################
+    # nn.save("model_max.h5")
+
+    ############ XGBoost (Model 2) #################
+    xg_reg.save_model("model_max.h5")
+
+
     with open("model_max.h5", "rb") as image_file:
         model_max = base64.b64encode(image_file.read())
     # Save One-Hot-Encoder
@@ -499,7 +576,7 @@ def train(id):
                 "update model set selected = 0")
 
         conn.execute(
-            "insert into model values (default, 'NN', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1,"+str(model_min)[1:]+","+str(model_max)[1:]+","+str(encoder)[1:]+","+str(countvectorizer)[1:]+","+minb64[1:]+","+maxb64[1:]+")")
+            "insert into model values (default, 'XGBoost', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1,"+str(model_min)[1:]+","+str(model_max)[1:]+","+str(encoder)[1:]+","+str(countvectorizer)[1:]+","+minb64[1:]+","+maxb64[1:]+")")
 
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
@@ -547,7 +624,7 @@ def predict():
     y_pred_test_nn_min = model_min.predict(x_test)
     y_pred_test_nn_max = model_max.predict(x_test)
 
-    return Response(json.dumps({"pMinSal": int(y_pred_test_nn_min[0][0]), "pMaxSal": int(y_pred_test_nn_max[0][0])}), 200, mimetype='application/json')
+    return Response(json.dumps({"pMinSal": int(y_pred_test_nn_min[0]), "pMaxSal": int(y_pred_test_nn_max[0])}), 200, mimetype='application/json')
 
 #   ___ _____ _ _____ ___ ___ _____ ___ ___
 #  / __|_   _/_\_   _|_ _/ __|_   _|_ _/ __|
@@ -671,8 +748,18 @@ def loadModel():
         print(str(e))
 
     try:
-        model_min = keras.models.load_model("model_min.h5")
-        model_max = keras.models.load_model("model_max.h5")
+        ############## Neural Network (Model1) ###################
+        # model_min = keras.models.load_model("model_min.h5")
+        # model_max = keras.models.load_model("model_max.h5")
+
+
+        ############## XGBoost (Model2) ###################
+        model_min = XGBRegressor()
+        model_min.load_model("model_min.h5")
+        model_max = XGBRegressor()
+        model_max.load_model("model_max.h5")
+
+        
         enc = pickle.load(open("encoder.pickle", "rb"))
         count_vectorizer = pickle.load(open("count_vectorizer.pickle", "rb"))
     except Exception as e:
@@ -719,7 +806,6 @@ def plot2_png():
 #  \__ \ | |/ _ \|   / | |    / _ \|  _/  _/
 #  |___/ |_/_/ \_\_|_\ |_|   /_/ \_\_| |_|
 
-jieyuan
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=False)
 
