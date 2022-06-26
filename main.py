@@ -23,20 +23,10 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn import feature_extraction
 from sklearn import model_selection
-from keras.layers import Dense
-from keras.layers import Dropout
-from keras.models import Sequential
-import keras
 import pickle
-from numpy.random import seed
-import tensorflow as tf
 import base64
-from numpy import loadtxt
 from xgboost import XGBRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 from xgboost import plot_importance
-from matplotlib.pyplot import figure
 import matplotlib.pyplot as plt
 
 #   ___ _  _ ___ _____ ___   _   _    ___ ___ ___ _  _  ___
@@ -327,10 +317,6 @@ def clean(id):
 
 
 def train(id):
-
-    # Set Random Seed
-    seed(2021)
-    tf.random.set_seed(2021)
 
     with db.connect() as conn:
         train_days = pd.read_sql(
