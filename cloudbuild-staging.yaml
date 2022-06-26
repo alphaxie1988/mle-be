@@ -32,13 +32,13 @@ steps:
   # Docker Build
   - name: "gcr.io/cloud-builders/docker"
     args:
-      ["build", "-t", "gcr.io/${PROJECT_ID}/mle-be_staging:${SHORT_SHA}", "."]
+      ["build", "-t", "gcr.io/${PROJECT_ID}/mle-be-staging:${SHORT_SHA}", "."]
   # [END cloudbuild_python_image_yaml]
 
   # [START cloudbuild_python_push_yaml]
   # Docker push to Google Artifact Registry
   - name: "gcr.io/cloud-builders/docker"
-    args: ["push", "gcr.io/${PROJECT_ID}/mle-be_staging:${SHORT_SHA}"]
+    args: ["push", "gcr.io/${PROJECT_ID}/mle-be-staging:${SHORT_SHA}"]
   # [END cloudbuild_python_push_yaml]
 
   # [START cloudbuild_python_deploy_yaml]
@@ -49,8 +49,8 @@ steps:
         "gcloud",
         "run",
         "deploy",
-        "mle-be_staging",
-        "--image=gcr.io/${PROJECT_ID}/mle-be_staging:${SHORT_SHA}",
+        "mle-be-staging",
+        "--image=gcr.io/${PROJECT_ID}/mle-be-staging:${SHORT_SHA}",
         "--region",
         "us-central1",
         "--platform",
@@ -71,6 +71,6 @@ steps:
 # [END cloudbuild_python_logs_yaml]
 # Store images in Google Artifact Registry
 images:
-  - gcr.io/${PROJECT_ID}/mle-be_staging:${SHORT_SHA}
+  - gcr.io/${PROJECT_ID}/mle-be-staging:${SHORT_SHA}
 # [END cloudbuild_python_yaml]
 timeout: 1000s
