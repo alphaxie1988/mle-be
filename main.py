@@ -546,8 +546,8 @@ def train(id):
     maxb64 = str(base64.b64encode(output2.getvalue()))
 
     # for image R2
-    plt.rcParams["figure.figsize"] = (20, 20)
-    plot_importance(xg_reg, max_num_features=10)
+    # plt.rcParams["figure.figsize"] = (20, 20)
+    # plot_importance(xg_reg, max_num_features=10)
     output = io.BytesIO()
     FigureCanvas(fig).print_png(output)
     minb64 = str(base64.b64encode(output.getvalue()))
