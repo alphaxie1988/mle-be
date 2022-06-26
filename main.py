@@ -689,7 +689,7 @@ def updateData():
 @ app.route("/model")
 def modellist():
     df = pd.read_sql(
-        "select id,\"createdDate\", min_rmse, min_adjrsquare, min_rsquare, max_rmse, max_adjrsquare, max_rsquare, selected,modelfilename FROM public.model order by 1 desc limit 7", db.connect())
+        "select id,\"createdDate\", min_rmse, min_adjrsquare, min_rsquare, max_rmse, max_adjrsquare, max_rsquare, selected,modelfilename, minfeature, maxfeature FROM public.model order by 1 desc limit 7", db.connect())
 
     return Response(json.dumps([{v: str(x[k]) for (k, v) in enumerate(df)}for x in df.values]
                                ), 200,  mimetype='application/json')
