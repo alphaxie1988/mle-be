@@ -34,11 +34,13 @@ def hello_pubsub(event, context):
                             requests.post(url, json=myobj).content)
                         if(result["pMinSal"] > 0 and result["pMaxSal"] > 0):
                             requests.get(
-                                cloudfunctionMessage+"Test%20Result%20:%20OK✅%0Ahttps://tinyurl.com/2022mle")
+                                cloudfunctionMessage+"Image%20:"+str(
+                                    temp["images"])+"%0ATest%20Result%20:%20OK✅%0Ahttps://tinyurl.com/2022mle")
                             print("OK")
                     except:
                         requests.get(
-                            cloudfunctionMessage+"Test%20Result%20:%20FAIL❌")
+                            cloudfunctionMessage+"Image%20:"+str(
+                                temp["images"])+"%0ATest%20Result%20:%20FAIL❌")
                         print("Fail")
                 else:
                     requests.get(cloudfunctionMessage+"Image%20:"+str(
@@ -52,11 +54,13 @@ def hello_pubsub(event, context):
                             requests.post(url, json=myobj).content)
                         if(result["pMinSal"] > 0 and result["pMaxSal"] > 0):
                             requests.get(
-                                cloudfunctionMessage+"Test%20Result%20:%20OK✅%0Ahttps://tinyurl.com/2022mle-staging")
+                                cloudfunctionMessage+"Image%20:"+str(
+                                    temp["images"])+"%0ATest%20Result%20:%20OK✅%0Ahttps://tinyurl.com/2022mle-staging")
                             print("OK")
                     except:
                         requests.get(
-                            cloudfunctionMessage+"Test%20Result%20:%20FAIL❌")
+                            cloudfunctionMessage+"Image%20:"+str(
+                                temp["images"])+"%0ATest%20Result%20:%20FAIL❌")
                         print("Fail")
 
             if(temp["status"] == "TIMEOUT"):
