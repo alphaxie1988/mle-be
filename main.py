@@ -329,8 +329,10 @@ def train(id):
     df_main = df_main[df_main["minimumyearsexperience"] <= 25]
     df_main.fillna(value='', inplace=True)
     # prepare column categories and employment for word vectorizer
+    df_main['categories'] = df_main['categories'].str.replace(' / ', '_')
     df_main['categories'] = df_main['categories'].str.replace(' ', '_')
     df_main['categories'] = df_main['categories'].str.replace('|', ' ')
+    df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(' / ', '_')
     df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(
         ' ', '_')
     df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(
@@ -447,10 +449,11 @@ def train(id):
     keys = list(feature_important.keys())
     values = list(feature_important.values())
 
-    imptfeature = pd.DataFrame(data=values, index=keys,columns=["score"]).sort_values(by = "score", ascending=False)
+    imptfeature = pd.DataFrame(data=values, index=keys, columns=[
+                               "score"]).sort_values(by="score", ascending=False)
 
-    top5features_min=list(imptfeature.index)[:10]
-    top5features_str_min=", ".join(top5features_min)
+    top5features_min = list(imptfeature.index)[:10]
+    top5features_str_min = ", ".join(top5features_min)
 
     # Save Model
 ############ Neural Network (Model 1) #################
@@ -504,15 +507,16 @@ def train(id):
 
     fig = Figure()
     axis = fig.add_subplot(1, 1, 1)
-    
+
     feature_important = xg_reg.get_booster().get_score(importance_type='weight')
     keys = list(feature_important.keys())
     values = list(feature_important.values())
 
-    imptfeature = pd.DataFrame(data=values, index=keys,columns=["score"]).sort_values(by = "score", ascending=False)
+    imptfeature = pd.DataFrame(data=values, index=keys, columns=[
+                               "score"]).sort_values(by="score", ascending=False)
 
-    top5features_max=list(imptfeature.index)[:10]
-    top5features_str_max=", ".join(top5features_max)
+    top5features_max = list(imptfeature.index)[:10]
+    top5features_str_max = ", ".join(top5features_max)
 
     # axis.plot(xs, ys)
     ############ Neural Network (Model 1) #################
