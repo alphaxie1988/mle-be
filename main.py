@@ -513,11 +513,15 @@ def train(id):
     # axis.scatter(y_test['minsalary'], y_pred_test_nn_min,
     #              color='red', alpha=0.1, s=10)
     ############ XGBoost (Model 2) #################
+
+
+    # for image R2
     axis.scatter(y_test['minsalary'], y_preds_min,
                 color='red', alpha=0.1, s=10)
     output = io.BytesIO()
     FigureCanvas(fig).print_png(output)
     minb64 = str(base64.b64encode(output.getvalue()))
+
     fig2 = Figure()
     axis2 = fig2.add_subplot(1, 1, 1)
     # axis.plot(xs, ys)
@@ -530,6 +534,13 @@ def train(id):
     output2 = io.BytesIO()
     FigureCanvas(fig2).print_png(output2)
     maxb64 = str(base64.b64encode(output2.getvalue()))
+
+    # for image R2
+    plt.rcParams["figure.figsize"] = (20, 20)
+    plot_importance(xg_reg, max_num_features=10)
+    output = io.BytesIO()
+    FigureCanvas(fig).print_png(output)
+    minb64 = str(base64.b64encode(output.getvalue()))
     #   ___   ___   _____   __  __  ___  ___  ___ _
     #  / __| /_\ \ / / __| |  \/  |/ _ \|   \| __| |
     #  \__ \/ _ \ V /| _|  | |\/| | (_) | |) | _|| |__
@@ -613,7 +624,7 @@ def predict():
     y_pred_test_nn_min = model_min.predict(x_test)
     y_pred_test_nn_max = model_max.predict(x_test)
 
-    return Response(json.dumps({"pMinSal": int(y_pred_test_nn_min[0][0]), "pMaxSal": int(y_pred_test_nn_max[0][0])}), 200, mimetype='application/json')
+    return Response(json.dumps({"pMinSal": int(y_pred_test_nn_min[0]), "pMaxSal": int(y_pred_test_nn_max[0])}), 200, mimetype='application/json')
 
 #   ___ _____ _ _____ ___ ___ _____ ___ ___
 #  / __|_   _/_\_   _|_ _/ __|_   _|_ _/ __|
