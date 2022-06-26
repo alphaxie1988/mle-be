@@ -449,7 +449,7 @@ def train(id):
 
     imptfeature = pd.DataFrame(data=values, index=keys,columns=["score"]).sort_values(by = "score", ascending=False)
 
-    top5features_min=list(imptfeature.index)[:5]
+    top5features_min=list(imptfeature.index)[:10]
     top5features_str_min=", ".join(top5features_min)
 
     # Save Model
@@ -511,7 +511,7 @@ def train(id):
 
     imptfeature = pd.DataFrame(data=values, index=keys,columns=["score"]).sort_values(by = "score", ascending=False)
 
-    top5features_max=list(imptfeature.index)[:5]
+    top5features_max=list(imptfeature.index)[:10]
     top5features_str_max=", ".join(top5features_max)
 
     # axis.plot(xs, ys)
