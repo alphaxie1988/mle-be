@@ -22,10 +22,10 @@ def hello_pubsub(event, context):
     try:
         if(temp["status"] in ["QUEUED", "SUCCESS", "WORKING", "TIMEOUT", "CANCELLED", "FAILED", "FAILURE"]):
             if(temp["status"] == "SUCCESS"):
+                requests.get(cloudfunctionMessage+"Image%20:"+str(
+                    temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0A😃")
+                time.sleep(60)
                 if (str(temp["images"]).find("staging") == -1):
-                    requests.get(cloudfunctionMessage+"Image%20:"+str(
-                        temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0A😃")
-                    time.sleep(45)
                     url = 'https://mle-be-zolecwvnzq-uc.a.run.app/predict'
                     myobj = {"numberofvacancies": 1, "jobCategory": [],
                              "jobType": [], "jobPositionLevels": [], "minimumYOE": "1"}
@@ -43,9 +43,6 @@ def hello_pubsub(event, context):
                                 temp["images"])+"%0ATest%20Result%20:%20FAIL❌")
                         print("Fail")
                 else:
-                    requests.get(cloudfunctionMessage+"Image%20:"+str(
-                        temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0A😃")
-                    time.sleep(45)
                     url = 'https://mle-be-staging-zolecwvnzq-uc.a.run.app/predict'
                     myobj = {"numberofvacancies": 1, "jobCategory": [],
                              "jobType": [], "jobPositionLevels": [], "minimumYOE": "1"}
