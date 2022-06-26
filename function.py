@@ -24,7 +24,7 @@ def hello_pubsub(event, context):
             if(temp["status"] == "SUCCESS"):
                 requests.get(cloudfunctionMessage+"Image%20:"+str(
                     temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0A😃")
-                time.sleep(10)
+                time.sleep(45)
                 url = 'https://mle-be-zolecwvnzq-uc.a.run.app/predict'
                 myobj = {"numberofvacancies": 1, "jobCategory": [],
                          "jobType": [], "jobPositionLevels": [], "minimumYOE": "1"}
@@ -54,7 +54,7 @@ def hello_pubsub(event, context):
             if(temp["status"] in ["FAILED", "FAILURE"]):
                 requests.get(cloudfunctionMessage+"Image%20:" +
                              str(temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0A😭")
-    except:
-        print("Error")
+    except Exception as inst:
+        print("Error", inst)
     # print(pubsub_message)
     # print("|||"+str(temp)+"|||")
