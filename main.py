@@ -329,8 +329,10 @@ def train(id):
     df_main = df_main[df_main["minimumyearsexperience"] <= 25]
     df_main.fillna(value='', inplace=True)
     # prepare column categories and employment for word vectorizer
+    df_main['categories'] = df_main['categories'].str.replace(' / ', '_')
     df_main['categories'] = df_main['categories'].str.replace(' ', '_')
     df_main['categories'] = df_main['categories'].str.replace('|', ' ')
+    df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(' / ', '_')
     df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(
         ' ', '_')
     df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(
@@ -443,6 +445,16 @@ def train(id):
     print('Min salary R2:' + str(min_R2))
     print('Min salary Adjusted R2: ' + str(min_adj_R2))
 
+    feature_important = xg_reg.get_booster().get_score(importance_type='weight')
+    keys = list(feature_important.keys())
+    values = list(feature_important.values())
+
+    imptfeature = pd.DataFrame(data=values, index=keys, columns=[
+                               "score"]).sort_values(by="score", ascending=False)
+
+    top5features_min = list(imptfeature.index)[:10]
+    top5features_str_min = ", ".join(top5features_min)
+
     # Save Model
 ############ Neural Network (Model 1) #################
     # nn.save("model_min.h5")
@@ -495,6 +507,17 @@ def train(id):
 
     fig = Figure()
     axis = fig.add_subplot(1, 1, 1)
+
+    feature_important = xg_reg.get_booster().get_score(importance_type='weight')
+    keys = list(feature_important.keys())
+    values = list(feature_important.values())
+
+    imptfeature = pd.DataFrame(data=values, index=keys, columns=[
+                               "score"]).sort_values(by="score", ascending=False)
+
+    top5features_max = list(imptfeature.index)[:10]
+    top5features_str_max = ", ".join(top5features_max)
+
     # axis.plot(xs, ys)
     ############ Neural Network (Model 1) #################
     # axis.scatter(y_test['minsalary'], y_pred_test_nn_min,
@@ -561,7 +584,7 @@ def train(id):
                 "update model set selected = 0")
 
         conn.execute(
-            "insert into model values (default, 'XGBoost', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1,"+str(model_min)[1:]+","+str(model_max)[1:]+","+str(encoder)[1:]+","+str(countvectorizer)[1:]+","+minb64[1:]+","+maxb64[1:]+")")
+            "insert into model values (default, 'XGBoost', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1,"+str(model_min)[1:]+","+str(model_max)[1:]+","+str(encoder)[1:]+","+str(countvectorizer)[1:]+","+minb64[1:]+","+maxb64[1:]+",'"+top5features_str_min+"','"+top5features_str_max+"')")
 
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
@@ -669,8 +692,7 @@ def updateData():
 
 @ app.route("/model")
 def modellist():
-    df = pd.read_sql(
-        "select id,\"createdDate\", min_rmse, min_adjrsquare, min_rsquare, max_rmse, max_adjrsquare, max_rsquare, selected,modelfilename FROM public.model order by 1 desc limit 7", db.connect())
+    df = pd.read_sql("select id,\"createdDate\", min_rmse, min_adjrsquare, min_rsquare, max_rmse, max_adjrsquare, max_rsquare, selected,modelfilename, minfeature, maxfeature FROM public.model order by 1 desc limit 7", db.connect())
 
     return Response(json.dumps([{v: str(x[k]) for (k, v) in enumerate(df)}for x in df.values]
                                ), 200,  mimetype='application/json')
