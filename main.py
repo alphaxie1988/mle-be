@@ -253,7 +253,7 @@ def crawl():
         numberOfJobAfter = int(conn.execute(
             "SELECT count(*) FROM careers").fetchone()[0])
     requests.get(
-        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendMessage?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A8.%20*🏁Job%20Ended*%0A🆕Number%20Of%20New%20Jobs:%20"+str(numberOfJobAfter-numberOfJobBefore))
+        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendMessage?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A10.%20*🏁Job%20Ended*%0A🆕Number%20Of%20New%20Jobs:%20"+str(numberOfJobAfter-numberOfJobBefore))
     # End of Crawl
     return f"Thank you for waiting!"
     # return Response(
@@ -332,7 +332,8 @@ def train(id):
     df_main['categories'] = df_main['categories'].str.replace(' / ', '_')
     df_main['categories'] = df_main['categories'].str.replace(' ', '_')
     df_main['categories'] = df_main['categories'].str.replace('|', ' ')
-    df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(' / ', '_')
+    df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(
+        ' / ', '_')
     df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(
         ' ', '_')
     df_main['employmenttypes'] = df_main['employmenttypes'].str.replace(
@@ -589,7 +590,24 @@ def train(id):
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
     requests.get(
-        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendMessage?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A7.%20🏋Training%20Ended%0AMin_RMSE:%20" + str(round(min_RMSE, 3))+"%0AMax_RMSE:%20" + str(round(max_RMSE, 3))+"%0AMin_R2:%20" + str(round(min_R2, 3))+"%0AMax_R2:%20" + str(round(max_R2, 3)))
+        "https://us-central1-mle-by-xjl.cloudfunctions.net/sendMessage?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A7.%20🏋Training%20Ended%0AMin_RMSE:%20" + str(round(min_RMSE, 3))+"%0AMax_RMSE:%20" + str(round(max_RMSE, 3))+"%0AMin_R2:%20" + str(round(min_R2, 3))+"%0AMax_R2:%20" + str(round(max_R2, 3))+"%0A8.%20🧪Testing%20Started")
+    testingEndPoint(id)
+
+
+def testingEndPoint(id):
+    url = 'https://mle-be-zolecwvnzq-uc.a.run.app/predict'
+    myobj = {"numberofvacancies": 1, "jobCategory": [],
+             "jobType": [], "jobPositionLevels": [], "minimumYOE": "1"}
+    try:
+        result = json.loads(
+            requests.post(url, json=myobj).content)
+        if(result["pMinSal"] > 0 and result["pMaxSal"] > 0):
+            requests.get(
+                "https://us-central1-mle-by-xjl.cloudfunctions.net/sendMessage?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A9.%20🧪Testing%20Ended%0AResult:%20OK✅")
+    except:
+        requests.get(
+            "https://us-central1-mle-by-xjl.cloudfunctions.net/sendMessage?message=__"+str(datetime.now())[0:-7]+"__MLP__%0AID:%20"+id+"%0A9.%20🧪Testing%20Ended%0AResult:%20FAIL❌")
+
 
 #   ___ ___ ___ ___ ___ ___ _____
 #  | _ \ _ \ __|   \_ _/ __|_   _|
