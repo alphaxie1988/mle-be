@@ -22,22 +22,42 @@ def hello_pubsub(event, context):
     try:
         if(temp["status"] in ["QUEUED", "SUCCESS", "WORKING", "TIMEOUT", "CANCELLED", "FAILED", "FAILURE"]):
             if(temp["status"] == "SUCCESS"):
-                requests.get(cloudfunctionMessage+"Image%20:"+str(
-                    temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0A😃")
-                time.sleep(45)
-                url = 'https://mle-be-zolecwvnzq-uc.a.run.app/predict'
-                myobj = {"numberofvacancies": 1, "jobCategory": [],
-                         "jobType": [], "jobPositionLevels": [], "minimumYOE": "1"}
-                try:
-                    result = json.loads(requests.post(url, json=myobj).content)
-                    if(result["pMinSal"] > 0 and result["pMaxSal"] > 0):
+                if (str(temp["images"]).find("staging") == -1):
+                    requests.get(cloudfunctionMessage+"Image%20:"+str(
+                        temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0A😃")
+                    time.sleep(45)
+                    url = 'https://mle-be-zolecwvnzq-uc.a.run.app/predict'
+                    myobj = {"numberofvacancies": 1, "jobCategory": [],
+                             "jobType": [], "jobPositionLevels": [], "minimumYOE": "1"}
+                    try:
+                        result = json.loads(
+                            requests.post(url, json=myobj).content)
+                        if(result["pMinSal"] > 0 and result["pMaxSal"] > 0):
+                            requests.get(
+                                cloudfunctionMessage+"Test%20Result%20:%20OK✅%0Ahttps://tinyurl.com/2022mle")
+                            print("OK")
+                    except:
                         requests.get(
-                            cloudfunctionMessage+"Test%20Result%20:%20OK✅%0Ahttps://tinyurl.com/2022mle")
-                        print("OK")
-                except:
-                    requests.get(
-                        cloudfunctionMessage+"Test%20Result%20:%20FAIL❌")
-                    print("Fail")
+                            cloudfunctionMessage+"Test%20Result%20:%20FAIL❌")
+                        print("Fail")
+                else:
+                    requests.get(cloudfunctionMessage+"Image%20:"+str(
+                        temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0A😃")
+                    time.sleep(45)
+                    url = 'https://mle-be-staging-zolecwvnzq-uc.a.run.app/predict'
+                    myobj = {"numberofvacancies": 1, "jobCategory": [],
+                             "jobType": [], "jobPositionLevels": [], "minimumYOE": "1"}
+                    try:
+                        result = json.loads(
+                            requests.post(url, json=myobj).content)
+                        if(result["pMinSal"] > 0 and result["pMaxSal"] > 0):
+                            requests.get(
+                                cloudfunctionMessage+"Test%20Result%20:%20OK✅%0Ahttps://tinyurl.com/2022mle-staging")
+                            print("OK")
+                    except:
+                        requests.get(
+                            cloudfunctionMessage+"Test%20Result%20:%20FAIL❌")
+                        print("Fail")
 
             if(temp["status"] == "TIMEOUT"):
                 requests.get(cloudfunctionMessage+"Image%20:" +
