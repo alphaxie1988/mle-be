@@ -457,6 +457,15 @@ def train(id):
     print('Min salary R2:' + str(min_R2))
     print('Min salary Adjusted R2: ' + str(min_adj_R2))
 
+    feature_important = xg_reg.get_booster().get_score(importance_type='weight')
+    keys = list(feature_important.keys())
+    values = list(feature_important.values())
+
+    imptfeature = pd.DataFrame(data=values, index=keys,columns=["score"]).sort_values(by = "score", ascending=False)
+
+    top5features_min=list(imptfeature.index)[:5]
+    top5features_str_min=", ".join(top5features_min)
+
     # Save Model
 ############ Neural Network (Model 1) #################
     # nn.save("model_min.h5")
@@ -509,6 +518,16 @@ def train(id):
 
     fig = Figure()
     axis = fig.add_subplot(1, 1, 1)
+    
+    feature_important = xg_reg.get_booster().get_score(importance_type='weight')
+    keys = list(feature_important.keys())
+    values = list(feature_important.values())
+
+    imptfeature = pd.DataFrame(data=values, index=keys,columns=["score"]).sort_values(by = "score", ascending=False)
+
+    top5features_max=list(imptfeature.index)[:5]
+    top5features_str_max=", ".join(top5features_max)
+
     # axis.plot(xs, ys)
     ############ Neural Network (Model 1) #################
     # axis.scatter(y_test['minsalary'], y_pred_test_nn_min,
@@ -575,7 +594,7 @@ def train(id):
                 "update model set selected = 0")
 
         conn.execute(
-            "insert into model values (default, 'XGBoost', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1,"+str(model_min)[1:]+","+str(model_max)[1:]+","+str(encoder)[1:]+","+str(countvectorizer)[1:]+","+minb64[1:]+","+maxb64[1:]+")")
+            "insert into model values (default, 'XGBoost', now(), " + str(min_RMSE) + ", " + str(min_adj_R2) + ", " + str(min_R2) + ", " + str(max_RMSE) + ", " + str(max_adj_R2) + ", " + str(max_R2) + ", 1,"+str(model_min)[1:]+","+str(model_max)[1:]+","+str(encoder)[1:]+","+str(countvectorizer)[1:]+","+minb64[1:]+","+maxb64[1:]+",'"+top5features_str_min+"','"+top5features_str_max+"')")
 
     # select * from careers where error is not null and fixed = "included"
     # fixed can be null -> yet to fixed, fixed => excluded, fixed => included
