@@ -23,20 +23,10 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn import feature_extraction
 from sklearn import model_selection
-from keras.layers import Dense
-from keras.layers import Dropout
-from keras.models import Sequential
-import keras
 import pickle
-from numpy.random import seed
-import tensorflow as tf
 import base64
-from numpy import loadtxt
 from xgboost import XGBRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 from xgboost import plot_importance
-from matplotlib.pyplot import figure
 import matplotlib.pyplot as plt
 
 #   ___ _  _ ___ _____ ___   _   _    ___ ___ ___ _  _  ___
@@ -328,10 +318,6 @@ def clean(id):
 
 def train(id):
 
-    # Set Random Seed
-    seed(2021)
-    tf.random.set_seed(2021)
-
     with db.connect() as conn:
         train_days = pd.read_sql(
             "select value from mle where key = 'numOfDaysToTrain'", conn).iloc[0, 0]
@@ -440,16 +426,17 @@ def train(id):
 
 
 ############ XGBoost (Model 2) #################
-    xg_reg = XGBRegressor(objective='reg:squarederror', seed=123, n_estimators=10)
+    xg_reg = XGBRegressor(objective='reg:squarederror',
+                          seed=123, n_estimators=10)
     xg_reg.fit(x_train, y_train['minsalary'])
     y_preds_min = xg_reg.predict(x_test)
 
     min_MSE = mean_squared_error(y_test['minsalary'], y_preds_min)
     min_RMSE = mean_squared_error(
-    y_test['minsalary'], y_preds_min, squared=False)
+        y_test['minsalary'], y_preds_min, squared=False)
     min_R2 = r2_score(y_test['minsalary'], y_preds_min)
     min_adj_R2 = 1-(1-r2_score(y_test['minsalary'], y_preds_min))*(
-    (x_test.shape[0]-1)/(x_test.shape[0]-x_test.shape[1]-1))
+        (x_test.shape[0]-1)/(x_test.shape[0]-x_test.shape[1]-1))
 
     print('Min salary MSE: ' + str(min_MSE))
     print('Min salary RMSE: ' + str(min_RMSE))
@@ -471,7 +458,6 @@ def train(id):
         #  | |\/| |/ _ \  >  <  \__ \/ _ \| |__ / _ \|   /\ V /  | |\/| | (_) | |) | _|| |__
         #  |_|  |_/_/ \_\/_/\_\ |___/_/ \_\____/_/ \_\_|_\ |_|   |_|  |_|\___/|___/|___|____|
 
-
     ############ Neural Network (Model 1) #################
     # nn.fit(
     #     x_train, y_train['maxsalary'], epochs=20, batch_size=100, verbose=2)
@@ -490,7 +476,8 @@ def train(id):
     # print('Max salary Adjusted R2: ' + str(max_adj_R2))
 
     ############ XGBoost (Model 2) #################
-    xg_reg = XGBRegressor(objective='reg:squarederror', seed=123, n_estimators=10)
+    xg_reg = XGBRegressor(objective='reg:squarederror',
+                          seed=123, n_estimators=10)
     xg_reg.fit(x_train, y_train['maxsalary'])
     y_preds_max = xg_reg.predict(x_test)
 
@@ -514,10 +501,9 @@ def train(id):
     #              color='red', alpha=0.1, s=10)
     ############ XGBoost (Model 2) #################
 
-
     # for image R2
     axis.scatter(y_test['minsalary'], y_preds_min,
-                color='red', alpha=0.1, s=10)
+                 color='red', alpha=0.1, s=10)
     output = io.BytesIO()
     FigureCanvas(fig).print_png(output)
     minb64 = str(base64.b64encode(output.getvalue()))
@@ -530,7 +516,7 @@ def train(id):
     #               color='green', alpha=0.1, s=10)
     ############ XGBoost (Model 2) #################
     axis2.scatter(y_test['maxsalary'], y_preds_max,
-                color='green', alpha=0.1, s=10)
+                  color='green', alpha=0.1, s=10)
     output2 = io.BytesIO()
     FigureCanvas(fig2).print_png(output2)
     maxb64 = str(base64.b64encode(output2.getvalue()))
@@ -551,7 +537,6 @@ def train(id):
 
     ############ XGBoost (Model 2) #################
     xg_reg.save_model("model_max.h5")
-
 
     with open("model_max.h5", "rb") as image_file:
         model_max = base64.b64encode(image_file.read())
@@ -656,7 +641,7 @@ def stats():
 @ app.route("/outlier")
 def data():
     df = pd.read_sql(
-        "select uuid, title, left(description,50) as description, skills, numberofvacancies, categories, positionlevels, postedcompany,employmenttypes, minsalary, maxsalary , remarks from careers where status = 1", db.connect())
+        "select uuid, title, left(description,50) as description, skills, numberofvacancies, categories, positionlevels, postedcompany,employmenttypes, minsalary, maxsalary , remarks, minimumyearsexperience from careers where status = 1", db.connect())
 
     return Response(json.dumps([{v: x[k] for (k, v) in enumerate(df)}for x in df.values]
                                ), 200,  mimetype='application/json')
@@ -685,7 +670,7 @@ def updateData():
 @ app.route("/model")
 def modellist():
     df = pd.read_sql(
-        "select id,\"createdDate\", min_rmse, min_adjrsquare, min_rsquare, max_rmse, max_adjrsquare, max_rsquare, selected FROM public.model order by 1 desc limit 7", db.connect())
+        "select id,\"createdDate\", min_rmse, min_adjrsquare, min_rsquare, max_rmse, max_adjrsquare, max_rsquare, selected,modelfilename FROM public.model order by 1 desc limit 7", db.connect())
 
     return Response(json.dumps([{v: str(x[k]) for (k, v) in enumerate(df)}for x in df.values]
                                ), 200,  mimetype='application/json')
@@ -752,14 +737,12 @@ def loadModel():
         # model_min = keras.models.load_model("model_min.h5")
         # model_max = keras.models.load_model("model_max.h5")
 
-
         ############## XGBoost (Model2) ###################
         model_min = XGBRegressor()
         model_min.load_model("model_min.h5")
         model_max = XGBRegressor()
         model_max.load_model("model_max.h5")
 
-        
         enc = pickle.load(open("encoder.pickle", "rb"))
         count_vectorizer = pickle.load(open("count_vectorizer.pickle", "rb"))
     except Exception as e:
