@@ -3,8 +3,8 @@
 #   | || |\/| |  _/ (_) |   / | |
 #  |___|_|  |_|_|  \___/|_|_\ |_|
 
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import matplotlib.pyplot as plt
 import io
 import datetime
 import logging
@@ -26,8 +26,6 @@ from sklearn import model_selection
 import pickle
 import base64
 from xgboost import XGBRegressor
-from xgboost import plot_importance
-import matplotlib.pyplot as plt
 
 #   ___ _  _ ___ _____ ___   _   _    ___ ___ ___ _  _  ___
 #  |_ _| \| |_ _|_   _|_ _| /_\ | |  |_ _/ __|_ _| \| |/ __|
@@ -506,9 +504,6 @@ def train(id):
     print('Max salary R2:' + str(max_R2))
     print('Max salary Adjusted R2: ' + str(max_adj_R2))
 
-    fig = Figure()
-    axis = fig.add_subplot(1, 1, 1)
-
     feature_important = xg_reg.get_booster().get_score(importance_type='weight')
     keys = list(feature_important.keys())
     values = list(feature_important.values())
@@ -526,31 +521,35 @@ def train(id):
     ############ XGBoost (Model 2) #################
 
     # for image R2
-    axis.scatter(y_test['minsalary'], y_preds_min,
-                 color='red', alpha=0.1, s=10)
+    plt.figure(1)
+    plt.title('Error of Minium Salary')
+    plt.xlabel('Actual Value')
+    plt.ylabel('Predicted Value')
+    plt.scatter(y_test['minsalary'], y_preds_min,
+                color='red', alpha=0.1, s=10)
     output = io.BytesIO()
-    FigureCanvas(fig).print_png(output)
+    FigureCanvas(plt.gcf()).print_png(output)
     minb64 = str(base64.b64encode(output.getvalue()))
 
-    fig2 = Figure()
-    axis2 = fig2.add_subplot(1, 1, 1)
     # axis.plot(xs, ys)
     ############ Neural Network (Model 1) #################
     # axis2.scatter(y_test['maxsalary'], y_pred_test_nn_max,
     #               color='green', alpha=0.1, s=10)
     ############ XGBoost (Model 2) #################
-    axis2.scatter(y_test['maxsalary'], y_preds_max,
-                  color='green', alpha=0.1, s=10)
+    plt.figure(2)
+    plt.title('Error of Maximum Salary')
+    plt.xlabel('Actual Value')
+    plt.ylabel('Predicted Value')
+    plt.scatter(y_test['maxsalary'], y_preds_max,
+                color='green', alpha=0.1, s=10)
     output2 = io.BytesIO()
-    FigureCanvas(fig2).print_png(output2)
+    FigureCanvas(plt.gcf()).print_png(output2)
     maxb64 = str(base64.b64encode(output2.getvalue()))
 
     # for image R2
     # plt.rcParams["figure.figsize"] = (20, 20)
     # plot_importance(xg_reg, max_num_features=10)
-    output = io.BytesIO()
-    FigureCanvas(fig).print_png(output)
-    minb64 = str(base64.b64encode(output.getvalue()))
+
     #   ___   ___   _____   __  __  ___  ___  ___ _
     #  / __| /_\ \ / / __| |  \/  |/ _ \|   \| __| |
     #  \__ \/ _ \ V /| _|  | |\/| | (_) | |) | _|| |__
