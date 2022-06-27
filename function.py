@@ -74,7 +74,7 @@ def hello_pubsub(event, context):
                              str(temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0A🚫")
             if(temp["status"] in ["FAILED", "FAILURE"]):
                 requests.get(cloudfunctionMessage+"Image%20:" +
-                             str(temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0A😭")
+                             str(temp["images"])+"%0AStatus:%20"+str(temp["status"])+"%0ALog:%20"+str(temp["logUrl"])+"%0A😭")
     except Exception as inst:
         print("Error", inst)
     # print(pubsub_message)
