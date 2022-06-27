@@ -522,7 +522,7 @@ def train(id):
 
     # for image R2
     plt.figure(1)
-    plt.title('Error of Minium Salary')
+    plt.title('Error of Minimum Salary')
     plt.xlabel('Actual Value')
     plt.ylabel('Predicted Value')
     plt.scatter(y_test['minsalary'], y_preds_min,
