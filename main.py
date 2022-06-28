@@ -522,7 +522,7 @@ def train(id):
 
     # for image R2
     plt.figure(1)
-    plt.title('Error of Minium Salary')
+    plt.title('Error of Minimum Salary')
     plt.xlabel('Actual Value')
     plt.ylabel('Predicted Value')
     plt.scatter(y_test['minsalary'], y_preds_min,
@@ -823,6 +823,7 @@ def plot2_png():
         return Response("", mimetype='image/png')
 
 
+# 🐛🐞🕷️🐝 🐞 🐜 🕷 🕸 🦂 🦗 🦟
 #   ___ _____ _   ___ _____     _   ___ ___
 #  / __|_   _/_\ | _ \_   _|   /_\ | _ \ _ \
 #  \__ \ | |/ _ \|   / | |    / _ \|  _/  _/
@@ -830,5 +831,6 @@ def plot2_png():
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=False)
+
 
 # ASCII ART FROM: https://patorjk.com/software/taag/#p=display&f=Small&t=HALF%20CRAWL
